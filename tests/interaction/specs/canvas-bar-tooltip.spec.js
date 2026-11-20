@@ -89,6 +89,23 @@ async function hover(page, { x, y }) {
   await page.waitForTimeout(150)
 }
 
+/**
+ * A CI runner can open the tooltip after the hover's settle, so wait for it
+ * where it is expected; a miss still fails on the checks that follow.
+ */
+async function waitForTooltip(page) {
+  await page
+    .waitForFunction(
+      () =>
+        document
+          .querySelector('.apexcharts-tooltip')
+          ?.classList.contains('apexcharts-active'),
+      null,
+      { timeout: 3000 },
+    )
+    .catch(() => {})
+}
+
 async function expectSameSpot(actual, expected, label) {
   expect(actual.active, label).toBe(true)
   expect(actual.placement, label).toBe(expected.placement)
@@ -260,11 +277,13 @@ test.describe('Canvas bar-likes: the shared tooltip', () => {
       await useRenderer(page, 'svg', {})
       const [spot] = (await spotsOn(page, selector, j)).spots
       await hover(page, spot)
+      await waitForTooltip(page)
       const svg = await readTooltip(page)
       expect(svg.active).toBe(true)
 
       await useRenderer(page, 'canvas', {})
       await hover(page, spot)
+      await waitForTooltip(page)
       await expectSameSpot(await readTooltip(page), svg, spot.label)
     })
   }

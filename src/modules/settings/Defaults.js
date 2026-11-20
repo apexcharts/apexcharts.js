@@ -666,6 +666,36 @@ export default class Defaults {
   }
 
   /**
+   * A sparkline with no tooltip has nothing for the keyboard to reach, so
+   * unless the user set accessibility.keyboard.enabled it is no tab stop and
+   * reads as an image (#5431). Every other chart keeps the keyboard on. Runs
+   * on a new chart and after every update, so a sparkline that gains a tooltip
+   * gains its tab stop back.
+   *
+   * @param {Record<string, any>} config the merged config, mutated in place
+   * @param {boolean} named whether the user set keyboard.enabled anywhere
+   */
+  static syncSparklineKeyboard(config, named) {
+    const keyboard = config.chart.accessibility?.keyboard
+    if (named || !keyboard) return
+    keyboard.enabled = !(
+      config.chart.sparkline?.enabled && config.tooltip?.enabled === false
+    )
+  }
+
+  /**
+   * Does any of `sources` (constructor options, global Apex options, an update
+   * payload) set accessibility.keyboard.enabled?
+   *
+   * @param {...(Record<string, any> | undefined)} sources
+   */
+  static namesKeyboard(...sources) {
+    return sources.some(
+      (src) => src?.chart?.accessibility?.keyboard?.enabled !== undefined,
+    )
+  }
+
+  /**
    * Settle the option combinations the renderers do not support. Runs on a new
    * chart's config and again after every updateOptions, which reaches the same
    * combinations. The two it cannot settle throw on a new chart, and only warn

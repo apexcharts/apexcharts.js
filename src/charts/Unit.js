@@ -6,7 +6,7 @@ import { getUnitMark, normalizeUnitMark } from '../modules/UnitMarkRegistry'
 import Utils from '../utils/Utils'
 import { Environment } from '../utils/Environment'
 import { BrowserAPIs } from '../ssr/BrowserAPIs'
-import { prefersReducedMotion } from '../modules/Animations'
+import Animations, { prefersReducedMotion } from '../modules/Animations'
 import { resolveEasing } from '../modules/animations/Easing'
 import { lerpRGBA, resolveRGBA } from '../utils/Color'
 import {
@@ -49,6 +49,166 @@ const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5))
  * @type {WeakMap<object, any>}
  */
 const NORMALISED = new WeakMap()
+
+/** Numbers each path command takes per repeat. */
+const PATH_ARGS = /** @type {Record<string, number>} */ ({
+  M: 2,
+  L: 2,
+  T: 2,
+  H: 1,
+  V: 1,
+  S: 4,
+  Q: 4,
+  C: 6,
+  A: 7,
+  Z: 0,
+})
+const PATH_NUMBER = /[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/y
+
+/**
+ * Split path data into its subpaths, each standing on its own: a subpath that
+ * opened with a relative `m` (placed from where the last one ended) is given
+ * its absolute start, so it draws where it did inside the whole path.
+ * Subpaths that draw nothing (a bare moveto) are dropped. Parsing stops at the
+ * first malformed token, as a browser stops drawing there.
+ *
+ * Only end points are tracked, so no curve is flattened: each subpath is the
+ * original commands, verbatim but for its opening moveto.
+ *
+ * @param {string} d
+ * @returns {string[]}
+ */
+export function splitSubpaths(d) {
+  /** @type {string[]} */
+  const subs = []
+  // The subpath being read, while `live`.
+  /** @type {string[]} */
+  let cur = []
+  let live = false
+  let drew = false
+  let started = false
+  let px = 0
+  let py = 0
+  let sx = 0
+  let sy = 0
+  let closed = false
+  let cmd = ''
+  let i = 0
+  const n = d.length
+  const skip = () => {
+    while (i < n && /[\s,]/.test(d[i])) i++
+  }
+  /** @returns {number} NaN when the next token is not a number */
+  const num = () => {
+    skip()
+    PATH_NUMBER.lastIndex = i
+    const m = PATH_NUMBER.exec(d)
+    if (!m) return NaN
+    i += m[0].length
+    return Number(m[0])
+  }
+  /** An arc flag is one character, so '110' reads as 1, 1, 0. */
+  const flag = () => {
+    skip()
+    const c = d[i]
+    if (c !== '0' && c !== '1') return NaN
+    i++
+    return +c
+  }
+  const finish = () => {
+    if (live && drew) subs.push(cur.join(''))
+    live = false
+    drew = false
+  }
+  /** @param {number} x @param {number} y @returns {string[]} */
+  const open = (x, y) => {
+    finish()
+    const next = ['M' + x + ' ' + y]
+    cur = next
+    live = true
+    sx = px = x
+    sy = py = y
+    closed = false
+    started = true
+    return next
+  }
+
+  for (;;) {
+    skip()
+    if (i >= n) break
+    const c = d[i]
+    if (/[a-z]/i.test(c)) {
+      if (!(c.toUpperCase() in PATH_ARGS)) break
+      cmd = c
+      i++
+    } else if (!cmd || cmd === 'Z' || cmd === 'z') {
+      // A number with no command to repeat: malformed.
+      break
+    }
+    const U = cmd.toUpperCase()
+    const rel = cmd !== U
+    if (U === 'Z') {
+      if (live) {
+        cur.push('Z')
+        px = sx
+        py = sy
+        closed = true
+      }
+      continue
+    }
+    // One repeat of the command's arguments.
+    /** @type {number[]} */
+    const a = []
+    for (let k = 0; k < PATH_ARGS[U]; k++) {
+      a.push(U === 'A' && (k === 3 || k === 4) ? flag() : num())
+    }
+    if (!a.every((v) => isFinite(v))) break
+    if (U === 'M') {
+      open(a[0] + (rel ? px : 0), a[1] + (rel ? py : 0))
+      // Further pairs after a move are lines of the same relativity.
+      cmd = rel ? 'l' : 'L'
+      continue
+    }
+    // A path must open with a move; nothing draws otherwise.
+    if (!started) break
+    // A command straight after Z starts a new subpath where the last began.
+    const seg = !live || closed ? open(sx, sy) : cur
+    seg.push(cmd + a.join(' '))
+    drew = true
+    if (U === 'H') {
+      px = rel ? px + a[0] : a[0]
+    } else if (U === 'V') {
+      py = rel ? py + a[0] : a[0]
+    } else {
+      const x = a[a.length - 2]
+      const y = a[a.length - 1]
+      px = rel ? px + x : x
+      py = rel ? py + y : y
+    }
+  }
+  finish()
+  return subs
+}
+
+/**
+ * A glyph's subpaths when it has two or more (see splitSubpaths), else null:
+ * a single contour is hit on its own ink, so it needs no hole test. Cached by
+ * path data, which a crowd of one glyph shares.
+ * @type {Map<string, string[]|null>}
+ */
+const CONTOURS = new Map()
+/** @param {string} d @returns {string[]|null} */
+function contoursOf(d) {
+  let c = CONTOURS.get(d)
+  if (c === undefined) {
+    const subs = typeof d === 'string' ? splitSubpaths(d) : []
+    c = subs.length > 1 ? subs : null
+    // Per-datum inline marks are unbounded in number: keep the cache small.
+    if (CONTOURS.size >= 256) CONTOURS.clear()
+    CONTOURS.set(d, c)
+  }
+  return c
+}
 
 /**
  * Suffix a repeated id ("a", "a#2", ...) so every unit sharing it keeps a key of
@@ -103,10 +263,12 @@ const MAX_FRAME_STEP = 0.25
  *   PK_CIRCLE  cx / cy at the centre
  *   PK_CORNER  x / y at the top-left  (square, image)
  *   PK_GLYPH   transform="translate(...) scale(s)"  (pictogram)
+ *   PK_LABEL   x / y on a tile label, and x on each of its lines' tspans
  */
 const PK_CIRCLE = 0
 const PK_CORNER = 1
 const PK_GLYPH = 2
+const PK_LABEL = 3
 
 /**
  * Resolve a spring preset to a `[stiffness, damping]` pair rescaled for the
@@ -177,8 +339,8 @@ export default class Unit {
     this._scatterAxis = null
     /** @type {Map<string, any>} glyph draw specs, keyed (mark, quantised r) */
     this._specCache = new Map()
-    /** @type {Set<string>|null} mark names already warned about */
-    this._markWarned = null
+    /** @type {any} this render's root group, handed to animationEnd */
+    this._root = null
   }
 
   /**
@@ -190,11 +352,13 @@ export default class Unit {
     const graphics = new Graphics(w, this.ctx)
 
     const ret = graphics.group({ class: 'apexcharts-unit' })
+    this._root = ret
     // The previous render's loops animate nodes this render just replaced,
     // whether or not this one animates.
     BrowserAPIs.cancelAnimationFrame(w.globals.unitGatherRAF || 0)
     BrowserAPIs.cancelAnimationFrame(w.globals.unitExitRAF || 0)
     w.globals.unitGatherRAF = w.globals.unitExitRAF = null
+    w.globals.unitHoleHit = null
     if (w.globals.noData || !Array.isArray(series) || series.length === 0) {
       return ret
     }
@@ -331,15 +495,21 @@ export default class Unit {
             x: n('x') + n('width') / 2,
             y: n('y') + n('height') / 2,
             r: Math.min(n('width'), n('height')) / 2,
+            // That is the piece's DRAWN size, so no draw factor applies.
+            g: 1,
             fill: el.getAttribute('fill'),
           })
         })
       }
     }
-    /** @type {Map<string, {x:number,y:number,fill:string,r?:number,spec?:any}>} */
+    /** @type {Map<string, {x:number,y:number,fill:string,r?:number,g?:number,spec?:any}>} */
     const nextPrev = new Map()
     /** @type {UnitAnimDot[]} */
     const animDots = []
+    // Glyphs of two or more contours (one may be a hole), for the hover hit
+    // test. A single contour is hit on its own ink.
+    /** @type {{node: SVGElement, x: number, y: number, spec: any}[]} */
+    const holed = []
 
     // Per-unit data (one datum per dot) when the caller passed the object form
     // series: [{ name, data: [...] }]. Lets a dot carry its own colour + info.
@@ -397,7 +567,7 @@ export default class Unit {
           cx0,
           cy0,
           key,
-          r0: from && from.r != null ? from.r : r,
+          r0: from && from.r != null ? this._startRadius(from, spec) : r,
           r1: r,
           delay: 0,
           isEnter: !from,
@@ -456,6 +626,7 @@ export default class Unit {
         const spec = this._markSpecFor(opts, datum, cluster.i, rj)
         const el = this._drawDot(graphics, opts, rj, dotFill, cluster.i, j, spec)
         elSeries.add(el)
+        if (spec.contours) holed.push({ node: el.node, x: d.x, y: d.y, spec })
         // Identity keying: a specific unit (by id/name) persists across any
         // regroup or relayout. Flow: anonymous crowd by global draw order.
         // Group (default): the category slot.
@@ -483,7 +654,7 @@ export default class Unit {
         }
         gIndex++
         // The spec rides along so an exit ghost leaves as the mark it was.
-        nextPrev.set(key, { x: d.x, y: d.y, fill: dotFill, r: rj, spec })
+        nextPrev.set(key, { x: d.x, y: d.y, fill: dotFill, r: rj, g: this._drawFactor(spec), spec })
         if (pieceTakeover) {
           // The piece layer does the flying; this dot waits at its final slot
           // for its piece to land, and gets no tween of its own so the swap
@@ -537,8 +708,10 @@ export default class Unit {
             key,
             // Radius tween: an identity-kept dot grows/shrinks from its previous
             // size to its new one (e.g. bubble sizing turning on) instead of
-            // snapping. Enters/uniform updates keep r0 === r1 (no-op).
-            r0: from && from.r != null ? from.r : rj,
+            // snapping. Enters/uniform updates keep r0 === r1 (no-op). The
+            // start is the size it was DRAWN at, so a glyph whose
+            // `pictogram.scale` or `padding` changed eases too.
+            r0: from && from.r != null ? this._startRadius(from, spec) : rj,
             r1: rj,
             // Colour tween: a dot that flows into a differently coloured group
             // recolours as it travels rather than snapping at the first frame.
@@ -571,7 +744,7 @@ export default class Unit {
         const t = this._drawClusterLabel(elSeries, cluster, counts[cluster.i], labelTotal, opts, color)
         // A tile label rides with its cells (kept out of the exit ghosts).
         if (t && gridSplit) {
-          const spec = { pk: PK_CORNER, hx: 0, hy: 0, r: 0 }
+          const spec = { pk: PK_LABEL, hx: 0, hy: 0, r: 0 }
           const lx = +(t.getAttribute('x') || 0)
           const ly = +(t.getAttribute('y') || 0)
           glide(t, spec, lx, ly, 'lbl:' + cluster.i, 0, at, animDots.length > at)
@@ -607,6 +780,8 @@ export default class Unit {
     // Stored even when not animating (e.g. resize) so the following update
     // starts from the correct on-screen positions.
     if (this.ctx) this.ctx._unitPrevDots = nextPrev
+
+    if (holed.length) w.globals.unitHoleHit = this._holeHitTest(ret.node, holed)
 
     // A render that placed its dots outright (resize, animations off, reduced
     // motion) makes any live spring state stale: the springs describe where a
@@ -1232,11 +1407,24 @@ export default class Unit {
     // side keeps a small default margin.
     const labelsOn = !!(opts.clusterLabels && opts.clusterLabels.show)
     const labelsBelow = labelsOn && opts.clusterLabels.position === 'bottom'
-    const topPad = labelsOn && !labelsBelow ? 30 : 6
 
     // Only VISIBLE (non-empty) categories claim a column slot, so a legend-hidden
     // bar leaves NO gap: the remaining bars re-flow to fill the row.
     const visible = counts.map((_, i) => i).filter((i) => counts[i] > 0)
+
+    // A label split over several lines ("\n" in its formatter's text) grows
+    // away from its bar, so its band grows by the extra lines.
+    let labelBand = 30
+    if (labelsOn) {
+      const total = counts.reduce((a, b) => a + b, 0)
+      const maxLines = visible.reduce(
+        (m, i) => Math.max(m, this._clusterLabelLines(i, counts[i], total, opts).length),
+        1,
+      )
+      const fontSize = parseFloat(opts.clusterLabels.fontSize) || 13
+      labelBand += (maxLines - 1) * Math.round(fontSize * 1.35)
+    }
+    const topPad = labelsOn && !labelsBelow ? labelBand : 6
     const Kv = Math.max(1, visible.length)
     const slotOf = new Array(counts.length).fill(-1)
     visible.forEach((i, s) => (slotOf[i] = s))
@@ -1245,7 +1433,7 @@ export default class Unit {
     const barW = cellW * 0.62 // gap between neighbouring bars
     // Keep the baseline off the legend / plot edge, plus a label band below the
     // bars when the labels sit there.
-    const bottomPad = Math.max(8, gh * 0.04) + (labelsBelow ? 30 : 0)
+    const bottomPad = Math.max(8, gh * 0.04) + (labelsBelow ? labelBand : 0)
     const availH = Math.max(4, gh - topPad - bottomPad)
     const maxCount = Math.max(1, ...counts)
     const spacing = opts.spacing > 0 ? opts.spacing : 1
@@ -2503,7 +2691,7 @@ export default class Unit {
    * carrying an int the frame loop switches on. `_place` is the only writer.
    *
    * @typedef {object} UnitMarkSpec
-   * @property {number} pk PK_CIRCLE | PK_CORNER | PK_GLYPH
+   * @property {number} pk PK_CIRCLE | PK_CORNER | PK_GLYPH | PK_LABEL
    * @property {number} [hx] corner: half-width
    * @property {number} [hy] corner: half-height
    * @property {any} [mark] glyph: the resolved mark definition
@@ -2513,8 +2701,56 @@ export default class Unit {
    * @property {number} [ox] glyph: pre-scaled x of the viewBox centre
    * @property {number} [oy] glyph: pre-scaled y of the viewBox centre
    * @property {string} [tail] glyph: the pre-built `) scale(s)` transform tail
+   * @property {string[]|null} [contours] glyph: its subpaths, each standing
+   *   alone, when it has two or more (the hover hole test); else null
    * @property {number} [r] the radius this spec was fitted to
+   * @property {number} [g] glyph: drawn box size over the layout's diameter,
+   *   `(1 - pictogram.padding) * pictogram.scale`
+   * @property {number} [f] glyph: its longest side over the side `fit` binds,
+   *   1 under 'contain'
    */
+
+  /**
+   * How much bigger than its layout radius a mark is DRAWN. A glyph's box is
+   * `2r * (1 - padding) * scale`; a circle, square or image draws at `r`
+   * itself, so 1.
+   * @param {any} spec @returns {number}
+   */
+  _drawFactor(spec) {
+    return spec && spec.pk === PK_GLYPH && spec.g > 0 ? spec.g : 1
+  }
+
+  /**
+   * The radius a size tween starts from, in the NEW spec's terms: the size the
+   * mark was last drawn at. A size tween scales the new spec by r0 / r1, so a
+   * changed draw factor (`pictogram.scale`, `padding`, or `fit` for the same
+   * mark, set differently for this render) would otherwise apply in full on
+   * the first frame and pop every glyph before it eased. `fit` counts only for
+   * the same mark: a unit that swaps to a glyph of another aspect has no size
+   * of its own to ease from.
+   * @param {{r?: number, g?: number, spec?: any}} from the mark's previous render
+   * @param {any} spec this render's spec
+   * @returns {number}
+   */
+  _startRadius(from, spec) {
+    const r = /** @type {number} */ (from.r)
+    let g0 = from.g != null && from.g > 0 ? from.g : 1
+    let g1 = this._drawFactor(spec)
+    const was = from.spec
+    if (
+      was &&
+      was.pk === PK_GLYPH &&
+      spec &&
+      spec.pk === PK_GLYPH &&
+      was.d === spec.d &&
+      String(was.mark.viewBox) === String(spec.mark.viewBox)
+    ) {
+      g0 *= was.f || 1
+      g1 *= spec.f || 1
+    }
+    // Equal factors keep r exactly, so an unchanged mark stays a no-op tween.
+    return g0 === g1 ? r : (r * g0) / g1
+  }
 
   /**
    * Position one mark at (x, y), whatever element it is.
@@ -2543,6 +2779,14 @@ export default class Unit {
     } else if (s.pk === PK_CORNER) {
       node.setAttribute('x', String(x - s.hx * k))
       node.setAttribute('y', String(y - s.hy * k))
+    } else if (s.pk === PK_LABEL) {
+      // A tile label. Each line of a multi-line one is a tspan with its own
+      // x (that is what starts it under the first), so the lines move too.
+      node.setAttribute('x', String(x))
+      node.setAttribute('y', String(y))
+      for (let c = node.firstChild; c; c = c.nextSibling) {
+        if (c.nodeName === 'tspan') /** @type {Element} */ (c).setAttribute('x', String(x))
+      }
     } else {
       node.setAttribute('cx', String(x))
       node.setAttribute('cy', String(y))
@@ -2586,7 +2830,21 @@ export default class Unit {
    */
   _resolveMark(ref) {
     if (ref == null) return null
-    if (typeof ref === 'object') return normalizeUnitMark(ref)
+    if (typeof ref === 'object') {
+      const inline = normalizeUnitMark(ref)
+      if (inline) return inline
+      // An inline mark that cannot draw used to fall back without a word, so
+      // a viewBox the chart could not read looked like a sizing bug.
+      const vb = JSON.stringify(ref.viewBox)
+      this._warnMarkOnce(
+        'inline:' + vb,
+        `[ApexCharts] unit chart: a mark object needs a path string and a ` +
+          `viewBox of 4 numbers ([0, 0, 24, 24] or '0 0 24 24') with a ` +
+          `positive width and height (got viewBox ${vb}). Drawing ` +
+          `pictogram.fallback instead.`,
+      )
+      return null
+    }
     if (typeof ref !== 'string' || !ref) return null
     const s = ref.trim()
     // Sugar: an inline outline rather than a registered name.
@@ -2601,19 +2859,32 @@ export default class Unit {
       NORMALISED.set(/** @type {object} */ (found), mark)
     }
     if (mark) return mark
-    if (!this._markWarned) this._markWarned = new Set()
-    if (!this._markWarned.has(s)) {
-      this._markWarned.add(s)
-      console.warn(
-        found
-          ? `[ApexCharts] unit chart: mark "${s}" needs a path string and a ` +
-              `viewBox of 4 numbers with a positive width and height.`
-          : `[ApexCharts] unit chart: no mark named "${s}" is registered. ` +
-              `Register one with ApexCharts.registerUnitMark("${s}", pathData), ` +
-              `or import a catalog from 'apexcharts/pictograms'.`,
-      )
-    }
+    this._warnMarkOnce(
+      s,
+      found
+        ? `[ApexCharts] unit chart: mark "${s}" needs a path string and a ` +
+            `viewBox of 4 numbers ([0, 0, 24, 24] or '0 0 24 24') with a ` +
+            `positive width and height.`
+        : `[ApexCharts] unit chart: no mark named "${s}" is registered. ` +
+            `Register one with ApexCharts.registerUnitMark("${s}", pathData), ` +
+            `or import a catalog from 'apexcharts/pictograms'.`,
+    )
     return null
+  }
+
+  /**
+   * Warn about a mark that cannot draw, once per chart rather than once per
+   * render: a Unit is made anew for every render, so a set held on it would
+   * warn again on each update of a live chart. Kept on the chart, as
+   * `_applyMaxUnits` keeps `_unitCapWarned`.
+   * @param {string} key what the warning is about @param {string} msg
+   */
+  _warnMarkOnce(key, msg) {
+    const ctx = /** @type {any} */ (this.ctx || this)
+    if (!ctx._unitMarkWarned) ctx._unitMarkWarned = new Set()
+    if (ctx._unitMarkWarned.has(key)) return
+    ctx._unitMarkWarned.add(key)
+    console.warn(msg)
   }
 
   /**
@@ -2661,13 +2932,124 @@ export default class Unit {
       d: mark.path,
       fillRule: mark.fillRule,
       s,
+      // Drawn size over layout radius (see _drawFactor), and what `fit` adds
+      // to the longest side (see _startRadius).
+      g: (1 - pad) * grow,
+      f:
+        Math.max(vb[2], vb[3]) /
+        (pcfg.fit === 'width' ? vb[2] : pcfg.fit === 'height' ? vb[3] : Math.max(vb[2], vb[3])),
       ox: (vb[0] + vb[2] / 2) * s,
       oy: (vb[1] + vb[3] / 2) * s,
       tail: ') scale(' + s + ')',
+      contours: contoursOf(mark.path),
       r: qr,
     })
     this._specCache.set(key, spec)
     return spec
+  }
+
+  /**
+   * The hover hit test for glyphs that may have a hole.
+   *
+   * Unit hover is plain DOM hit-testing: the tooltip listens on each series
+   * group and reads the hovered `<path>` off the event. A glyph with a hole (a
+   * ring, whichever way its contours wind and whatever its fill rule) is hit
+   * only on its ink, so over its hole the pointer falls through to the
+   * background, and the tooltip closes and reopens as it crosses the ring, or
+   * a mark beneath takes it. The DOM cannot
+   * widen one path's hit area to its outline portably and for free:
+   * `pointer-events: bounding-box` is Chromium only, and would also take in a
+   * glyph's notches (the gap between a figure's legs) and spill onto
+   * neighbours; a second, invisible hit path per mark doubles the nodes a
+   * crowd of thousands draws and moves every frame.
+   *
+   * So the hole is resolved here, where the geometry is known, and only for
+   * the glyphs that can have one: a hole needs a second contour, so a glyph
+   * of one subpath is never asked about, and the tooltip asks only when the
+   * pointer is on no mark's ink. A point is the mark's when it lies inside any
+   * one of its subpaths taken alone (filled `nonzero`). The outer contour on
+   * its own covers its hole whichever way the hole winds and whatever rule
+   * fills the whole, and nothing outside its outline: a notch stays a miss,
+   * a gap between separate parts (a figure's head and body) stays a miss, and
+   * no hit area reaches a neighbour. The subpaths of each distinct glyph are
+   * built into Path2Ds once, and a bucket grid over the resting slots keeps a
+   * query to a handful of marks.
+   *
+   * @param {SVGGElement} root the unit chart's root group: the slots' space
+   * @param {{node: SVGElement, x: number, y: number, spec: any}[]} holed
+   * @returns {((clientX: number, clientY: number) => Element|null)|null} null
+   *   where there is no Path2D to test with (SSR)
+   */
+  _holeHitTest(root, holed) {
+    if (typeof Path2D !== 'function') return null
+    // Each glyph's box, centred on its slot, in the root's user space.
+    const boxes = holed.map((h) => {
+      const vb = h.spec.mark.viewBox
+      return { hw: (h.spec.s * vb[2]) / 2, hh: (h.spec.s * vb[3]) / 2 }
+    })
+    // Cells at least as wide as the widest box, so the slot of any box that
+    // holds a point is in the point's cell or one of its 8 neighbours.
+    const cell = boxes.reduce((m, b) => Math.max(m, 2 * b.hw, 2 * b.hh), 1)
+    /** @type {Map<string, number[]>} */
+    const buckets = new Map()
+    holed.forEach((h, k) => {
+      const key = Math.floor(h.x / cell) + ',' + Math.floor(h.y / cell)
+      const list = buckets.get(key)
+      if (list) list.push(k)
+      else buckets.set(key, [k])
+    })
+    /** @type {Map<string, Path2D[]>} */
+    const paths = new Map()
+    /** @type {CanvasRenderingContext2D|null} */
+    let ctx2d = null
+
+    return (clientX, clientY) => {
+      const ctm = typeof root.getScreenCTM === 'function' ? root.getScreenCTM() : null
+      if (!ctm) return null
+      if (!ctx2d) {
+        const canvas = /** @type {HTMLCanvasElement|null} */ (
+          BrowserAPIs.createElement('canvas')
+        )
+        ctx2d = canvas && canvas.getContext ? canvas.getContext('2d') : null
+        if (!ctx2d) return null
+      }
+      const inv = ctm.inverse()
+      const px = inv.a * clientX + inv.c * clientY + inv.e
+      const py = inv.b * clientX + inv.d * clientY + inv.f
+      const cx = Math.floor(px / cell)
+      const cy = Math.floor(py / cell)
+      /** @type {number[]} */
+      const near = []
+      for (let gx = cx - 1; gx <= cx + 1; gx++) {
+        for (let gy = cy - 1; gy <= cy + 1; gy++) {
+          const list = buckets.get(gx + ',' + gy)
+          if (list) near.push(...list)
+        }
+      }
+      // Topmost first: a later mark paints over an earlier one.
+      near.sort((a, b) => b - a)
+      for (const k of near) {
+        const h = holed[k]
+        const b = boxes[k]
+        if (Math.abs(px - h.x) > b.hw || Math.abs(py - h.y) > b.hh) continue
+        const s = h.spec
+        const vb = s.mark.viewBox
+        // Into the glyph's own viewBox units: the inverse of what `_place`
+        // writes, translate(x - ox, y - oy) scale(s).
+        const lx = (px - h.x) / s.s + vb[0] + vb[2] / 2
+        const ly = (py - h.y) / s.s + vb[1] + vb[3] / 2
+        /** @type {Path2D[]} */
+        let parts = paths.get(s.d) || []
+        if (!parts.length) {
+          parts = s.contours.map((/** @type {string} */ c) => new Path2D(c))
+          paths.set(s.d, parts)
+        }
+        for (const p of parts) {
+          if (ctx2d.isPointInPath(p, lx, ly, 'nonzero')) return h.node
+        }
+      }
+      return null
+    }
   }
 
   /**
@@ -3104,7 +3486,10 @@ export default class Unit {
         // The gather is the unit chart's animation, so its completion is what
         // "the chart has settled" means here. Raised only when the loop reaches
         // rest, so a snapshot taken on this signal catches the final layout.
-        this.w.globals.animationEnded = true
+        // Through animationCompleted, as every other chart type finishes, so
+        // `chart.events.animationEnd` fires once for the whole gather; it
+        // raises `animationEnded` and is a no-op once that is already set.
+        new Animations(this.w, this.ctx).animationCompleted(this._root)
       } else {
         this.w.globals.unitGatherRAF = BrowserAPIs.requestAnimationFrame(stepFn)
       }
@@ -3441,6 +3826,24 @@ export default class Unit {
   }
 
   /**
+   * One cluster label's text, as lines. A `clusterLabels.formatter` may return
+   * "\n"-separated text to split the label, as it may for an outer label.
+   * @param {number} i @param {number} value @param {number} total @param {any} opts
+   * @returns {string[]}
+   */
+  _clusterLabelLines(i, value, total, opts) {
+    const w = this.w
+    const name = w.seriesData.seriesNames[i] || `series-${i + 1}`
+    const percent = total > 0 ? (value / total) * 100 : 0
+    const cfg = opts.clusterLabels
+    const text =
+      typeof cfg.formatter === 'function'
+        ? cfg.formatter(name, { seriesIndex: i, value, percent, w })
+        : `${name} (${percent.toFixed(1)}%)`
+    return String(text).split('\n')
+  }
+
+  /**
    * A cluster label placed above (default) or below the cluster/bar. A TOP label
    * over a wide grouped/packed blob rides a curved arc (invisible arc path +
    * <textPath>, centred at 50% offset); a bottom label, a 'columns' bar, or a
@@ -3456,24 +3859,10 @@ export default class Unit {
     if (!Environment.isBrowser()) return
     const NS = 'http://www.w3.org/2000/svg'
 
-    const name = w.seriesData.seriesNames[cluster.i] || `series-${cluster.i + 1}`
-    const percent = total > 0 ? (value / total) * 100 : 0
     const cfg = opts.clusterLabels
     const fontSize = parseFloat(cfg.fontSize) || 13
-
-    let text
-    if (typeof cfg.formatter === 'function') {
-      text = cfg.formatter(name, {
-        seriesIndex: cluster.i,
-        value,
-        percent,
-        w,
-      })
-    } else {
-      text = `${name} (${percent.toFixed(1)}%)`
-    }
-
-    const str = typeof text === 'string' ? text : String(text)
+    const lines = this._clusterLabelLines(cluster.i, value, total, opts)
+    const str = lines.join('\n')
 
     const textEl = BrowserAPIs.createElementNS(NS, 'text')
     textEl.setAttribute('class', 'apexcharts-unit-label')
@@ -3494,10 +3883,12 @@ export default class Unit {
     // Curve only a TOP label over a grouped/packed blob wide enough to carry it.
     // A bottom label, a 'columns' bar (cluster.flat), or a tiny cluster takes a
     // straight label instead.
+    // An arc carries one line, so a label split over several is straight.
     const curved =
       !bottom &&
       !cluster.flat &&
       cfg.curved !== false &&
+      lines.length === 1 &&
       estWidth <= Math.PI * R * 0.95
 
     if (curved) {
@@ -3530,8 +3921,24 @@ export default class Unit {
       const y = bottom
         ? cluster.cy + cluster.outerR + fontSize + 6 + (cfg.offsetY || 0)
         : cluster.cy - cluster.outerR - 6 - (cfg.offsetY || 0)
-      textEl.setAttribute('y', String(y))
-      textEl.textContent = str
+      if (lines.length === 1) {
+        textEl.setAttribute('y', String(y))
+        textEl.textContent = str
+      } else {
+        // One tspan per line, as the outer labels draw them. The line nearest
+        // the cluster stays where a one-line label sits, and the block grows
+        // away from it: upward for a top label, downward for a bottom one.
+        const lh = Math.round(fontSize * 1.35)
+        const y0 = bottom ? y : y - (lines.length - 1) * lh
+        textEl.setAttribute('y', String(y0))
+        lines.forEach((line, k) => {
+          const ts = BrowserAPIs.createElementNS(NS, 'tspan')
+          ts.setAttribute('x', String(cluster.cx))
+          ts.setAttribute('dy', k === 0 ? '0' : String(lh))
+          ts.textContent = line
+          textEl.appendChild(ts)
+        })
+      }
     }
 
     elSeries.node.appendChild(textEl)

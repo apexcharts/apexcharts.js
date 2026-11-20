@@ -428,6 +428,10 @@ export interface ChartGlobals
   radialTargetRAF: number | null
   unitGatherRAF: number | null
   unitExitRAF: number | null
+  /** The unit mark whose outline, hole included, is under a client point,
+   * for the tooltip to hover where a glyph's hole lets the pointer through to
+   * the background. Set by each unit render; null when no glyph has two or more contours. */
+  unitHoleHit: ((clientX: number, clientY: number) => Element | null) | null
   /** The gauge needle's last angle, where the next needle tween starts. */
   radialNeedleAngle: number | undefined
   /** The gauge tick fade-in timer; Destroy.clear() clears it. */

@@ -991,6 +991,8 @@ test.describe('Line highlight: labels start where they are drawn', () => {
   test('stacked area: every pick starts its labels on the screen', async ({
     page,
   }) => {
+    // three recorded picks; 11 to 13s on a CI runner
+    test.setTimeout(40_000)
     const three = (bump) => [
       {
         name: 'A',

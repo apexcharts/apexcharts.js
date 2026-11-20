@@ -287,17 +287,19 @@ describe('unit chart : pictogram marks', () => {
   it('normalises a mark registerMarks stored, and warns once about one it cannot draw', () => {
     // registerMarks writes the shared table without registerUnitMark's
     // checks; the chart normalises on read, as registerUnitMark does on the
-    // way in: a string viewBox (JSON config) is read as numbers, a short one
-    // takes the 0..100 default, and one that cannot be read falls back with a
-    // warning instead of scaling every glyph by NaN.
+    // way in: an array of numeric strings (JSON config) or the SVG string form
+    // is read as numbers, and one that cannot be read (too short, or not
+    // numbers) falls back with a warning instead of scaling every glyph by
+    // NaN or quietly taking the 0..100 box.
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     registerMarks({
       fromJson: { path: person.path, viewBox: ['0', '0', '100', '100'] },
+      svgString: { path: person.path, viewBox: '0 0 100 100' },
       shortBox: { path: person.path, viewBox: [0, 0, 24] },
       badBox: { path: person.path, viewBox: [0, 0, 'wide', 24] },
     })
     try {
-      for (const mark of ['fromJson', 'shortBox']) {
+      for (const mark of ['fromJson', 'svgString']) {
         const c = unitChart({ shape: 'pictogram', pictogram: { mark } })
         const glyphs = areas(c, 'path.apexcharts-unit-area')
         expect(glyphs).toHaveLength(50)
@@ -305,15 +307,18 @@ describe('unit chart : pictogram marks', () => {
         c.destroy()
       }
 
-      const c = unitChart({ shape: 'pictogram', pictogram: { mark: 'badBox' } })
-      expect(areas(c, 'path.apexcharts-unit-area')).toHaveLength(0)
-      expect(areas(c, 'circle.apexcharts-unit-area')).toHaveLength(50)
-      c.destroy()
+      for (const mark of ['shortBox', 'badBox']) {
+        const c = unitChart({ shape: 'pictogram', pictogram: { mark } })
+        expect(areas(c, 'path.apexcharts-unit-area')).toHaveLength(0)
+        expect(areas(c, 'circle.apexcharts-unit-area')).toHaveLength(50)
+        c.destroy()
+      }
       const msgs = warn.mock.calls.map((a) => String(a[0]))
       expect(msgs.filter((m) => m.includes('mark "badBox" needs'))).toHaveLength(1)
-      expect(msgs.some((m) => m.includes('fromJson') || m.includes('shortBox'))).toBe(false)
+      expect(msgs.filter((m) => m.includes('mark "shortBox" needs'))).toHaveLength(1)
+      expect(msgs.some((m) => m.includes('fromJson') || m.includes('svgString'))).toBe(false)
     } finally {
-      unregisterMarks(['fromJson', 'shortBox', 'badBox'])
+      unregisterMarks(['fromJson', 'svgString', 'shortBox', 'badBox'])
       warn.mockRestore()
     }
   })

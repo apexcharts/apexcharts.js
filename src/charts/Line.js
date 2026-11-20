@@ -1798,7 +1798,10 @@ class Line {
           const l = (bx - ax) * 0.35
           return graphics.curve(ax + l, ay, bx - l, by, bx, by)
         }
-        if (series[i][j] === null) {
+        // undefined: past the end of a series shorter than the longest one.
+        // It has no point to start a segment from, and after a trailing null
+        // it would open one at x = NaN, which blanks the whole merged d (#5439).
+        if (series[i][j] === null || series[i][j] === undefined) {
           pathState = 0
         } else {
           switch (pathState) {
@@ -1897,7 +1900,10 @@ class Line {
           }
           return path
         }
-        if (series[i][j] === null) {
+        // undefined: past the end of a series shorter than the longest one.
+        // It has no point to start a segment from, and after a trailing null
+        // it would open one at x = NaN, which blanks the whole merged d (#5439).
+        if (series[i][j] === null || series[i][j] === undefined) {
           pathState = 0
         } else {
           switch (pathState) {

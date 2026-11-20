@@ -4331,7 +4331,13 @@ type ApexPlotOptions = {
       /** Defaults to the cluster's own colour when undefined. */
       color?: string
       offsetY?: number
-      /** Return "\n"-separated text to split an outer label over several lines. */
+      /**
+       * Return "\n"-separated text to split the label over several lines, for
+       * an outer label and for a straight cluster label alike. A split
+       * cluster label is always straight (an arc carries one line); a top
+       * label grows upward and a bottom one downward, so the line nearest the
+       * cluster stays where a one-line label sits.
+       */
       formatter?(
         name: string,
         opts: { seriesIndex: number; value: number; percent: number; w: any }
@@ -5832,8 +5838,14 @@ interface ApexUnitMarkDef {
   name?: string
   /** Outline path data, in `viewBox` units. */
   path: string
-  /** Defaults to `[0, 0, 100, 100]`, the catalog's convention. */
-  viewBox?: [number, number, number, number]
+  /**
+   * `[minX, minY, width, height]`, or the string form an SVG's own `viewBox`
+   * attribute uses (`'0 0 24 24'`, space or comma separated), so an icon's
+   * attribute can be pasted as it is. Defaults to `[0, 0, 100, 100]`, the
+   * catalog's convention. A viewBox that is not 4 numbers with a positive
+   * width and height warns once and draws `pictogram.fallback` instead.
+   */
+  viewBox?: [number, number, number, number] | string
   fillRule?: 'nonzero' | 'evenodd'
 }
 

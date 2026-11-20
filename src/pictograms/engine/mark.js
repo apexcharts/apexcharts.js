@@ -21,8 +21,9 @@
  *   renaming one is a breaking change.
  * @property {string} path the outline. Fill-only - the chart positions a glyph
  *   with a uniform `scale()`, so any stroke width would scale with it.
- * @property {[number,number,number,number]} [viewBox] defaults to [0,0,100,100],
- *   which is the catalog's convention.
+ * @property {[number,number,number,number]|string} [viewBox] defaults to
+ *   [0,0,100,100], which is the catalog's convention. The SVG string form
+ *   ('0 0 24 24', or comma separated) is read into the array form.
  * @property {'nonzero'|'evenodd'} [fillRule]
  * @property {string} [category] 'people' | 'nature' | 'objects' | 'transport' |
  *   'symbols'
@@ -37,6 +38,23 @@
 /** @typedef {Readonly<MarkMeta> & { with: (o: Partial<MarkMeta>) => UnitMark }} UnitMark */
 
 /**
+ * The array form of a viewBox. A string that is not 4 numbers is kept as
+ * given, so the chart's own check (which warns once) still sees it, rather
+ * than it turning silently into the 0..100 box. Kept here rather than imported
+ * from the chart's mark registry, so this module stays free of any import
+ * from the chart.
+ * @param {any} vb
+ * @returns {any}
+ */
+function readViewBox(vb) {
+  if (!vb || (typeof vb === 'string' && !vb.trim())) return [0, 0, 100, 100]
+  if (typeof vb !== 'string') return vb
+  const parts = vb.trim().split(/[\s,]+/)
+  const nums = parts.map(Number)
+  return parts.length === 4 && nums.every((n) => isFinite(n)) ? nums : vb
+}
+
+/**
  * Define one pictogram.
  *
  * @param {MarkMeta} meta
@@ -45,7 +63,7 @@
 export function definePictogram(meta) {
   const mark = /** @type {any} */ ({
     ...meta,
-    viewBox: meta.viewBox || [0, 0, 100, 100],
+    viewBox: readViewBox(meta.viewBox),
   })
   mark.with = (/** @type {Partial<MarkMeta>} */ overrides) =>
     definePictogram({ ...meta, ...overrides })

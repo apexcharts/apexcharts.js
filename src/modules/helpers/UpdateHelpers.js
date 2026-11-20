@@ -374,6 +374,12 @@ export default class UpdateHelpers {
           Defaults.syncCatToNumeric(w.config, options)
           Defaults.syncSparkline(w.config, wasSparkline, options)
           Defaults.syncHorizontal(w.config, wasHorizontal, options)
+          ch._keyboardNamed ||= Defaults.namesKeyboard(
+            ch.opts,
+            Environment.getApex(),
+            options,
+          )
+          Defaults.syncSparklineKeyboard(w.config, ch._keyboardNamed)
 
           if (overwriteInitialConfig) {
             // we need to forget the lastXAxis and lastYAxis as user forcefully overwriteInitialConfig. If we do not do this, and next time when user zooms the chart after setting yaxis.min/max or xaxis.min/max - the stored lastXAxis will never allow the chart to use the updated min/max by user.
