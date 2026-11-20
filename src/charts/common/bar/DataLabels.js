@@ -418,6 +418,7 @@ export default class BarDataLabels {
       textRects,
       dataLabelsX,
       dataLabelsY,
+      dataLabelsConfig,
       barDataLabelsConfig,
       barTotalDataLabelsConfig,
       strokeWidth,
@@ -577,6 +578,27 @@ export default class BarDataLabels {
         dataLabelsY = 0 + strokeWidth
       } else if (dataLabelsY + textRects.height / 3 > w.layout.gridHeight) {
         dataLabelsY = w.layout.gridHeight - strokeWidth
+      }
+
+      const width = textRects.width
+      if (
+        !vertical &&
+        !w.axisFlags.isXNumeric &&
+        width + strokeWidth * 2 < w.layout.gridWidth
+      ) {
+        const anchorOffset =
+          dataLabelsConfig.textAnchor === 'start'
+            ? 0
+            : dataLabelsConfig.textAnchor === 'end'
+              ? width
+              : width / 2
+        const minX = anchorOffset + strokeWidth
+        const maxX = w.layout.gridWidth - (width - anchorOffset) - strokeWidth
+        if (dataLabelsX < minX) {
+          dataLabelsX = minX + offX
+        } else if (dataLabelsX > maxX) {
+          dataLabelsX = maxX + offX
+        }
       }
     }
 
