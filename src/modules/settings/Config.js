@@ -169,6 +169,11 @@ export default class Config {
       Environment.getApex().theme?.palette ||
       Config.modeDefaultPalette(config.theme.mode)
 
+    Defaults.syncSparklineKeyboard(
+      config,
+      Defaults.namesKeyboard(opts, Environment.getApex()),
+    )
+
     // some features are not supported. those mismatches should be handled
     Defaults.reconcile(config)
 

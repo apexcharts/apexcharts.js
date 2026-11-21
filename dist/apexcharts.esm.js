@@ -31,7 +31,7 @@ var __objRest = (source, exclude) => {
 };
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 /*!
- * ApexCharts v8.8.2
+ * ApexCharts v8.9.1
  * (c) 2018-2026 ApexCharts
  */
 import * as _core from "apexcharts/core";
@@ -19046,7 +19046,7 @@ class Line {
           const l = (bx - ax) * 0.35;
           return graphics.curve(ax + l, ay, bx - l, by, bx, by);
         };
-        if (series[i][j] === null) {
+        if (series[i][j] === null || series[i][j] === void 0) {
           pathState = 0;
         } else {
           switch (pathState) {
@@ -19119,7 +19119,7 @@ class Line {
           }
           return path;
         };
-        if (series[i][j] === null) {
+        if (series[i][j] === null || series[i][j] === void 0) {
           pathState = 0;
         } else {
           switch (pathState) {

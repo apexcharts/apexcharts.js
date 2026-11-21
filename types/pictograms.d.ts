@@ -46,7 +46,11 @@ export declare const catalog: ApexPictogram[]
 export declare function definePictogram(meta: {
   name: string
   path: string
-  viewBox?: [number, number, number, number]
+  /**
+   * `[minX, minY, width, height]`, or the SVG string form `'0 0 24 24'`,
+   * which is read into the array form. Defaults to `[0, 0, 100, 100]`.
+   */
+  viewBox?: [number, number, number, number] | string
   fillRule?: 'nonzero' | 'evenodd'
   category?: ApexPictogramCategory
   source?: 'original' | 'generated'

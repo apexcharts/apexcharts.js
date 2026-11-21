@@ -24,7 +24,8 @@
  * @typedef {object} UnitMark
  * @property {string} name
  * @property {string} path outline path data, in `viewBox` units
- * @property {[number,number,number,number]} viewBox [minX, minY, w, h]
+ * @property {[number,number,number,number]} viewBox [minX, minY, w, h]. A
+ *   caller may pass the SVG string form ('0 0 24 24'); it is stored as numbers.
  * @property {'nonzero'|'evenodd'} [fillRule]
  *
  * @module modules/UnitMarkRegistry
@@ -41,6 +42,31 @@ if (!g[MARK_KEY]) g[MARK_KEY] = Object.create(null)
 /** @returns {Record<string, UnitMark>} */
 function getMarks() {
   return /** @type {any} */ (globalThis)[MARK_KEY]
+}
+
+/**
+ * Read a mark's viewBox: the array form `[minX, minY, w, h]`, or the string
+ * form an SVG's own `viewBox` attribute uses (`'0 0 24 24'`, or comma
+ * separated), so an icon's attribute can be pasted as it is. Absent (or an
+ * empty string, as an empty attribute is) means the catalog's 0..100 box.
+ *
+ * @param {any} vb
+ * @returns {[number,number,number,number]|null} null when it is given but is
+ *   not 4 finite numbers with a positive width and height
+ */
+export function parseUnitMarkViewBox(vb) {
+  if (vb == null || (typeof vb === 'string' && !vb.trim())) return [0, 0, 100, 100]
+  const parts =
+    typeof vb === 'string' ? vb.trim().split(/[\s,]+/) : Array.isArray(vb) ? vb : null
+  if (!parts || parts.length !== 4) return null
+  // An empty or blank entry is not a 0.
+  const nums = parts.map((/** @type {any} */ n) =>
+    typeof n === 'string' && !n.trim() ? NaN : Number(n),
+  )
+  if (!nums.every((n) => isFinite(n)) || nums[2] <= 0 || nums[3] <= 0) {
+    return null
+  }
+  return /** @type {[number,number,number,number]} */ (nums)
 }
 
 /**
@@ -66,12 +92,11 @@ export function normalizeUnitMark(def, name) {
   }
   if (!def || typeof def !== 'object') return null
   if (typeof def.path !== 'string' || !def.path.trim()) return null
-  const vb = Array.isArray(def.viewBox) && def.viewBox.length === 4
-    ? def.viewBox.map(Number)
-    : [0, 0, 100, 100]
-  if (!vb.every((/** @type {number} */ n) => isFinite(n)) || vb[2] <= 0 || vb[3] <= 0) {
-    return null
-  }
+  // A viewBox that cannot be read makes the mark undrawable rather than
+  // quietly taking the 0..100 box: that box would draw a 24-unit icon at a
+  // quarter of its size in the corner of its slot. The caller warns.
+  const vb = parseUnitMarkViewBox(def.viewBox)
+  if (!vb) return null
   return Object.freeze({
     ...def,
     name: name || def.name || 'anonymous',
@@ -88,8 +113,9 @@ export function normalizeUnitMark(def, name) {
  *
  * @param {string} name
  * @param {string|UnitMark} def A path string in a 0..100 box, or
- *   `{path, viewBox?, fillRule?}`. Fill-only: a uniform `scale()` positions the
- *   glyph, so any stroke width would scale with it.
+ *   `{path, viewBox?, fillRule?}`, where `viewBox` is `[minX, minY, w, h]` or
+ *   the SVG string form `'0 0 24 24'`. Fill-only: a uniform `scale()` positions
+ *   the glyph, so any stroke width would scale with it.
  */
 export function registerUnitMark(name, def) {
   if (!name || typeof name !== 'string') {
@@ -100,7 +126,8 @@ export function registerUnitMark(name, def) {
   if (!mark) {
     console.warn(
       `ApexCharts: registerUnitMark("${name}") expects path data, or ` +
-        `{path, viewBox?, fillRule?}.`,
+        `{path, viewBox?, fillRule?} with a viewBox of 4 numbers ` +
+        `([0, 0, 24, 24] or '0 0 24 24') and a positive width and height.`,
     )
     return
   }

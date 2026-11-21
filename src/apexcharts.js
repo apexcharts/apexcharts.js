@@ -2355,7 +2355,8 @@ export default class ApexCharts {
    *
    * @param {string} name  the mark name, e.g. 'person'
    * @param {string|any} def path data in a 0..100 box, or
-   *   `{path, viewBox?, fillRule?}`
+   *   `{path, viewBox?, fillRule?}`, the viewBox as `[minX, minY, w, h]` or
+   *   the SVG string form `'0 0 24 24'`
    * @returns {typeof ApexCharts}
    */
   static registerUnitMark(name, def) {

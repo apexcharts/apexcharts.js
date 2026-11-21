@@ -43,6 +43,7 @@ import {
   unregisterShapes,
 } from '../../src/unit-shapes/index.js'
 import { flattenPath, boundsOf, signedArea } from '../../src/unit-shapes/engine/path.js'
+import { placeRow } from '../../src/unit-shapes/engine/pack.js'
 import { getUnitLayout } from '../../src/modules/UnitLayoutRegistry.js'
 import { _resetWarnings } from '../../src/unit-shapes/engine/shape.js'
 
@@ -668,5 +669,58 @@ describe('unit-shapes: preview() palette', () => {
     const svg = preview(heart, { series: [1, 1, 1, 1, 1], count: 500 })
     const fills = [...svg.matchAll(/<g fill="([^"]+)">/g)].map((m) => m[1])
     expect(fills).toEqual(getThemePalettes().palette1)
+  })
+})
+
+// A narrow span (a funnel, a limb) holding a dot fewer than it has room for used
+// to fan its dots out to its edges at up to 1.5x the pitch, so the feature read
+// as stripes beside its neighbours. A wide span still spreads to its edges.
+describe('unit-shapes: row spread', () => {
+  const PITCH = 7
+  const INSET = PITCH * 0.42
+  const row = (x0, x1, n) => {
+    const into = []
+    placeRow({ y: 0, x0, x1, cap: n, row: 0 }, n, PITCH, INSET, 3, into)
+    return into.map((p) => p.x)
+  }
+  const gaps = (xs) => xs.slice(1).map((x, i) => x - xs[i])
+
+  it('a narrow row keeps an even gap, centred in its span', () => {
+    // Room for three dots 1.44 pitches apart: the old rule spread them so.
+    const xs = row(0, 26, 3)
+    expect(Math.max(...gaps(xs))).toBeLessThanOrEqual(PITCH * 1.15 + 1e-9)
+    expect((xs[0] + xs[2]) / 2).toBeCloseTo(13, 9)
+  })
+
+  it('a wide row still spreads to the edges of its span', () => {
+    const xs = row(0, 100, 14)
+    expect(xs[0]).toBeCloseTo(INSET, 9)
+    expect(xs[13]).toBeCloseTo(100 - INSET, 9)
+    const g = gaps(xs)
+    expect(Math.max(...g) - Math.min(...g)).toBeLessThan(1e-9)
+  })
+
+  it('a row of five or more still spreads to its edges when the whole layout has slack', () => {
+    // Seven dots 1.33 pitches apart: every row of a slack layout spreads alike,
+    // so capping them would narrow the shape while its height stayed put.
+    const xs = row(0, 6 * 1.33 * PITCH + 2 * INSET, 7)
+    expect(xs[0]).toBeCloseTo(INSET, 9)
+    expect(xs[6]).toBeCloseTo(6 * 1.33 * PITCH + INSET, 9)
+  })
+
+  it('a narrow row spreads to its edges up to 1.15 pitches and centres past it', () => {
+    const under = row(0, 2 * 1.14 * PITCH + 2 * INSET, 3)
+    expect(under[0]).toBeCloseTo(INSET, 9)
+    expect(under[2] - under[1]).toBeCloseTo(1.14 * PITCH, 9)
+    const over = row(0, 2 * 1.16 * PITCH + 2 * INSET, 3)
+    expect(over[2] - over[1]).toBeCloseTo(1.15 * PITCH, 9)
+    expect(over[0]).toBeGreaterThan(INSET)
+  })
+
+  it('a sparse row keeps the same gap as a narrow one, not a tighter one', () => {
+    // Far more room than dots: centred at the capped gap, like the rows near it.
+    const xs = row(0, 100, 3)
+    gaps(xs).forEach((g) => expect(g).toBeCloseTo(PITCH * 1.15, 9))
+    expect((xs[0] + xs[2]) / 2).toBeCloseTo(50, 9)
   })
 })

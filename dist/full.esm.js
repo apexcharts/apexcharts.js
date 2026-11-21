@@ -51,7 +51,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.8.2
+ * ApexCharts v8.9.1
  * (c) 2018-2026 ApexCharts
  */
 import ApexCharts from "apexcharts";
@@ -2017,6 +2017,21 @@ function getMarks() {
     globalThis[MARK_KEY$1]
   );
 }
+function parseUnitMarkViewBox(vb) {
+  if (vb == null || typeof vb === "string" && !vb.trim()) return [0, 0, 100, 100];
+  const parts = typeof vb === "string" ? vb.trim().split(/[\s,]+/) : Array.isArray(vb) ? vb : null;
+  if (!parts || parts.length !== 4) return null;
+  const nums = parts.map(
+    (n2) => typeof n2 === "string" && !n2.trim() ? NaN : Number(n2)
+  );
+  if (!nums.every((n2) => isFinite(n2)) || nums[2] <= 0 || nums[3] <= 0) {
+    return null;
+  }
+  return (
+    /** @type {[number,number,number,number]} */
+    nums
+  );
+}
 function normalizeUnitMark(def, name) {
   if (typeof def === "string") {
     const d2 = def.trim();
@@ -2032,10 +2047,8 @@ function normalizeUnitMark(def, name) {
   }
   if (!def || typeof def !== "object") return null;
   if (typeof def.path !== "string" || !def.path.trim()) return null;
-  const vb = Array.isArray(def.viewBox) && def.viewBox.length === 4 ? def.viewBox.map(Number) : [0, 0, 100, 100];
-  if (!vb.every((n2) => isFinite(n2)) || vb[2] <= 0 || vb[3] <= 0) {
-    return null;
-  }
+  const vb = parseUnitMarkViewBox(def.viewBox);
+  if (!vb) return null;
   return Object.freeze(__spreadProps(__spreadValues({}, def), {
     name: name || def.name || "anonymous",
     path: def.path.trim(),
@@ -2173,6 +2186,131 @@ function spaceOutLabels(items, minGap, maxY, minY) {
 }
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 const NORMALISED = /* @__PURE__ */ new WeakMap();
+const PATH_ARGS = (
+  /** @type {Record<string, number>} */
+  {
+    M: 2,
+    L: 2,
+    T: 2,
+    H: 1,
+    V: 1,
+    S: 4,
+    Q: 4,
+    C: 6,
+    A: 7,
+    Z: 0
+  }
+);
+const PATH_NUMBER = /[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/y;
+function splitSubpaths(d2) {
+  const subs = [];
+  let cur = [];
+  let live = false;
+  let drew = false;
+  let started = false;
+  let px = 0;
+  let py = 0;
+  let sx = 0;
+  let sy = 0;
+  let closed = false;
+  let cmd = "";
+  let i2 = 0;
+  const n2 = d2.length;
+  const skip = () => {
+    while (i2 < n2 && /[\s,]/.test(d2[i2])) i2++;
+  };
+  const num = () => {
+    skip();
+    PATH_NUMBER.lastIndex = i2;
+    const m2 = PATH_NUMBER.exec(d2);
+    if (!m2) return NaN;
+    i2 += m2[0].length;
+    return Number(m2[0]);
+  };
+  const flag = () => {
+    skip();
+    const c2 = d2[i2];
+    if (c2 !== "0" && c2 !== "1") return NaN;
+    i2++;
+    return +c2;
+  };
+  const finish = () => {
+    if (live && drew) subs.push(cur.join(""));
+    live = false;
+    drew = false;
+  };
+  const open = (x2, y2) => {
+    finish();
+    const next = ["M" + x2 + " " + y2];
+    cur = next;
+    live = true;
+    sx = px = x2;
+    sy = py = y2;
+    closed = false;
+    started = true;
+    return next;
+  };
+  for (; ; ) {
+    skip();
+    if (i2 >= n2) break;
+    const c2 = d2[i2];
+    if (/[a-z]/i.test(c2)) {
+      if (!(c2.toUpperCase() in PATH_ARGS)) break;
+      cmd = c2;
+      i2++;
+    } else if (!cmd || cmd === "Z" || cmd === "z") {
+      break;
+    }
+    const U = cmd.toUpperCase();
+    const rel = cmd !== U;
+    if (U === "Z") {
+      if (live) {
+        cur.push("Z");
+        px = sx;
+        py = sy;
+        closed = true;
+      }
+      continue;
+    }
+    const a2 = [];
+    for (let k2 = 0; k2 < PATH_ARGS[U]; k2++) {
+      a2.push(U === "A" && (k2 === 3 || k2 === 4) ? flag() : num());
+    }
+    if (!a2.every((v) => isFinite(v))) break;
+    if (U === "M") {
+      open(a2[0] + (rel ? px : 0), a2[1] + (rel ? py : 0));
+      cmd = rel ? "l" : "L";
+      continue;
+    }
+    if (!started) break;
+    const seg = !live || closed ? open(sx, sy) : cur;
+    seg.push(cmd + a2.join(" "));
+    drew = true;
+    if (U === "H") {
+      px = rel ? px + a2[0] : a2[0];
+    } else if (U === "V") {
+      py = rel ? py + a2[0] : a2[0];
+    } else {
+      const x2 = a2[a2.length - 2];
+      const y2 = a2[a2.length - 1];
+      px = rel ? px + x2 : x2;
+      py = rel ? py + y2 : y2;
+    }
+  }
+  finish();
+  return subs;
+}
+const CONTOURS = /* @__PURE__ */ new Map();
+function contoursOf(d2) {
+  let c2 = CONTOURS.get(d2);
+  if (c2 === void 0) {
+    const subs = typeof d2 === "string" ? splitSubpaths(d2) : [];
+    c2 = subs.length > 1 ? subs : null;
+    if (CONTOURS.size >= 256) CONTOURS.clear();
+    CONTOURS.set(d2, c2);
+  }
+  return c2;
+}
 const uniqueId = (seen, id) => {
   const n2 = (seen.get(id) || 0) + 1;
   seen.set(id, n2);
@@ -2190,6 +2328,7 @@ const MAX_FRAME_STEP = 0.25;
 const PK_CIRCLE = 0;
 const PK_CORNER = 1;
 const PK_GLYPH = 2;
+const PK_LABEL = 3;
 function springParams(preset, speed) {
   const [stiffness, damping] = _t(
     /** @type {import('apex-commons').SpringPreset|undefined} */
@@ -2211,7 +2350,7 @@ class Unit {
     this._gridDenom = 1;
     this._scatterAxis = null;
     this._specCache = /* @__PURE__ */ new Map();
-    this._markWarned = null;
+    this._root = null;
   }
   /**
    * @param {any[]} series - flat count array (non-axis / pie-shaped data)
@@ -2221,9 +2360,11 @@ class Unit {
     const w = this.w;
     const graphics = new Graphics(w, this.ctx);
     const ret = graphics.group({ class: "apexcharts-unit" });
+    this._root = ret;
     BrowserAPIs.cancelAnimationFrame(w.globals.unitGatherRAF || 0);
     BrowserAPIs.cancelAnimationFrame(w.globals.unitExitRAF || 0);
     w.globals.unitGatherRAF = w.globals.unitExitRAF = null;
+    w.globals.unitHoleHit = null;
     if (w.globals.noData || !Array.isArray(series) || series.length === 0) {
       return ret;
     }
@@ -2266,6 +2407,8 @@ class Unit {
             x: n2("x") + n2("width") / 2,
             y: n2("y") + n2("height") / 2,
             r: Math.min(n2("width"), n2("height")) / 2,
+            // That is the piece's DRAWN size, so no draw factor applies.
+            g: 1,
             fill: el.getAttribute("fill")
           }));
         });
@@ -2273,6 +2416,7 @@ class Unit {
     }
     const nextPrev = /* @__PURE__ */ new Map();
     const animDots = [];
+    const holed = [];
     const unitData = w.seriesData.unitData || [];
     const sizeStats = this._bubbleStats(unitData, opts, dotR);
     let gIndex = 0;
@@ -2302,7 +2446,7 @@ class Unit {
           cx0,
           cy0,
           key,
-          r0: from && from.r != null ? from.r : r2,
+          r0: from && from.r != null ? this._startRadius(from, spec) : r2,
           r1: r2,
           delay: 0,
           isEnter: !from,
@@ -2340,6 +2484,7 @@ class Unit {
         const spec = this._markSpecFor(opts, datum, cluster.i, rj);
         const el = this._drawDot(graphics, opts, rj, dotFill, cluster.i, j, spec);
         elSeries.add(el);
+        if (spec.contours) holed.push({ node: el.node, x: d2.x, y: d2.y, spec });
         let key;
         if (identity) {
           const id = datum && typeof datum === "object" ? datum.id != null ? datum.id : datum.name : void 0;
@@ -2352,7 +2497,7 @@ class Unit {
           key = `${cluster.i}:${j}`;
         }
         gIndex++;
-        nextPrev.set(key, { x: d2.x, y: d2.y, fill: dotFill, r: rj, spec });
+        nextPrev.set(key, { x: d2.x, y: d2.y, fill: dotFill, r: rj, g: this._drawFactor(spec), spec });
         if (pieceTakeover) {
           this._place(el.node, spec, d2.x, d2.y);
           el.node.setAttribute("opacity", "0");
@@ -2380,8 +2525,10 @@ class Unit {
             key,
             // Radius tween: an identity-kept dot grows/shrinks from its previous
             // size to its new one (e.g. bubble sizing turning on) instead of
-            // snapping. Enters/uniform updates keep r0 === r1 (no-op).
-            r0: from && from.r != null ? from.r : rj,
+            // snapping. Enters/uniform updates keep r0 === r1 (no-op). The
+            // start is the size it was DRAWN at, so a glyph whose
+            // `pictogram.scale` or `padding` changed eases too.
+            r0: from && from.r != null ? this._startRadius(from, spec) : rj,
             r1: rj,
             // Colour tween: a dot that flows into a differently coloured group
             // recolours as it travels rather than snapping at the first frame.
@@ -2400,7 +2547,7 @@ class Unit {
         const labelTotal = gridSplit ? this._gridDenom : total;
         const t2 = this._drawClusterLabel(elSeries, cluster, counts[cluster.i], labelTotal, opts, color);
         if (t2 && gridSplit) {
-          const spec = { pk: PK_CORNER, hx: 0, hy: 0, r: 0 };
+          const spec = { pk: PK_LABEL, hx: 0, hy: 0, r: 0 };
           const lx = +(t2.getAttribute("x") || 0);
           const ly = +(t2.getAttribute("y") || 0);
           glide(t2, spec, lx, ly, "lbl:" + cluster.i, 0, at, animDots.length > at);
@@ -2420,6 +2567,7 @@ class Unit {
       }
     }
     if (this.ctx) this.ctx._unitPrevDots = nextPrev;
+    if (holed.length) w.globals.unitHoleHit = this._holeHitTest(ret.node, holed);
     if (this.ctx && (!animate || morphActive)) this.ctx._unitSprings = null;
     if (animate && animDots.length) {
       this._runGather(animDots, speed);
@@ -2911,14 +3059,24 @@ class Unit {
     const gh = w.layout.gridHeight;
     const labelsOn = !!(opts.clusterLabels && opts.clusterLabels.show);
     const labelsBelow = labelsOn && opts.clusterLabels.position === "bottom";
-    const topPad = labelsOn && !labelsBelow ? 30 : 6;
     const visible = counts.map((_, i2) => i2).filter((i2) => counts[i2] > 0);
+    let labelBand = 30;
+    if (labelsOn) {
+      const total = counts.reduce((a2, b) => a2 + b, 0);
+      const maxLines = visible.reduce(
+        (m2, i2) => Math.max(m2, this._clusterLabelLines(i2, counts[i2], total, opts).length),
+        1
+      );
+      const fontSize = parseFloat(opts.clusterLabels.fontSize) || 13;
+      labelBand += (maxLines - 1) * Math.round(fontSize * 1.35);
+    }
+    const topPad = labelsOn && !labelsBelow ? labelBand : 6;
     const Kv = Math.max(1, visible.length);
     const slotOf = new Array(counts.length).fill(-1);
     visible.forEach((i2, s2) => slotOf[i2] = s2);
     const cellW = gw / Kv;
     const barW = cellW * 0.62;
-    const bottomPad = Math.max(8, gh * 0.04) + (labelsBelow ? 30 : 0);
+    const bottomPad = Math.max(8, gh * 0.04) + (labelsBelow ? labelBand : 0);
     const availH = Math.max(4, gh - topPad - bottomPad);
     const maxCount = Math.max(1, ...counts);
     const spacing = opts.spacing > 0 ? opts.spacing : 1;
@@ -3920,7 +4078,7 @@ class Unit {
    * carrying an int the frame loop switches on. `_place` is the only writer.
    *
    * @typedef {object} UnitMarkSpec
-   * @property {number} pk PK_CIRCLE | PK_CORNER | PK_GLYPH
+   * @property {number} pk PK_CIRCLE | PK_CORNER | PK_GLYPH | PK_LABEL
    * @property {number} [hx] corner: half-width
    * @property {number} [hy] corner: half-height
    * @property {any} [mark] glyph: the resolved mark definition
@@ -3930,8 +4088,49 @@ class Unit {
    * @property {number} [ox] glyph: pre-scaled x of the viewBox centre
    * @property {number} [oy] glyph: pre-scaled y of the viewBox centre
    * @property {string} [tail] glyph: the pre-built `) scale(s)` transform tail
+   * @property {string[]|null} [contours] glyph: its subpaths, each standing
+   *   alone, when it has two or more (the hover hole test); else null
    * @property {number} [r] the radius this spec was fitted to
+   * @property {number} [g] glyph: drawn box size over the layout's diameter,
+   *   `(1 - pictogram.padding) * pictogram.scale`
+   * @property {number} [f] glyph: its longest side over the side `fit` binds,
+   *   1 under 'contain'
    */
+  /**
+   * How much bigger than its layout radius a mark is DRAWN. A glyph's box is
+   * `2r * (1 - padding) * scale`; a circle, square or image draws at `r`
+   * itself, so 1.
+   * @param {any} spec @returns {number}
+   */
+  _drawFactor(spec) {
+    return spec && spec.pk === PK_GLYPH && spec.g > 0 ? spec.g : 1;
+  }
+  /**
+   * The radius a size tween starts from, in the NEW spec's terms: the size the
+   * mark was last drawn at. A size tween scales the new spec by r0 / r1, so a
+   * changed draw factor (`pictogram.scale`, `padding`, or `fit` for the same
+   * mark, set differently for this render) would otherwise apply in full on
+   * the first frame and pop every glyph before it eased. `fit` counts only for
+   * the same mark: a unit that swaps to a glyph of another aspect has no size
+   * of its own to ease from.
+   * @param {{r?: number, g?: number, spec?: any}} from the mark's previous render
+   * @param {any} spec this render's spec
+   * @returns {number}
+   */
+  _startRadius(from, spec) {
+    const r2 = (
+      /** @type {number} */
+      from.r
+    );
+    let g0 = from.g != null && from.g > 0 ? from.g : 1;
+    let g1 = this._drawFactor(spec);
+    const was = from.spec;
+    if (was && was.pk === PK_GLYPH && spec && spec.pk === PK_GLYPH && was.d === spec.d && String(was.mark.viewBox) === String(spec.mark.viewBox)) {
+      g0 *= was.f || 1;
+      g1 *= spec.f || 1;
+    }
+    return g0 === g1 ? r2 : r2 * g0 / g1;
+  }
   /**
    * Position one mark at (x, y), whatever element it is.
    *
@@ -3956,6 +4155,12 @@ class Unit {
     } else if (s2.pk === PK_CORNER) {
       node.setAttribute("x", String(x2 - s2.hx * k2));
       node.setAttribute("y", String(y2 - s2.hy * k2));
+    } else if (s2.pk === PK_LABEL) {
+      node.setAttribute("x", String(x2));
+      node.setAttribute("y", String(y2));
+      for (let c2 = node.firstChild; c2; c2 = c2.nextSibling) {
+        if (c2.nodeName === "tspan") c2.setAttribute("x", String(x2));
+      }
     } else {
       node.setAttribute("cx", String(x2));
       node.setAttribute("cy", String(y2));
@@ -3999,7 +4204,16 @@ class Unit {
    */
   _resolveMark(ref) {
     if (ref == null) return null;
-    if (typeof ref === "object") return normalizeUnitMark(ref);
+    if (typeof ref === "object") {
+      const inline = normalizeUnitMark(ref);
+      if (inline) return inline;
+      const vb = JSON.stringify(ref.viewBox);
+      this._warnMarkOnce(
+        "inline:" + vb,
+        `[ApexCharts] unit chart: a mark object needs a path string and a viewBox of 4 numbers ([0, 0, 24, 24] or '0 0 24 24') with a positive width and height (got viewBox ${vb}). Drawing pictogram.fallback instead.`
+      );
+      return null;
+    }
     if (typeof ref !== "string" || !ref) return null;
     const s2 = ref.trim();
     if (s2[0] === "M" || s2[0] === "m") return normalizeUnitMark(s2);
@@ -4014,14 +4228,28 @@ class Unit {
       );
     }
     if (mark) return mark;
-    if (!this._markWarned) this._markWarned = /* @__PURE__ */ new Set();
-    if (!this._markWarned.has(s2)) {
-      this._markWarned.add(s2);
-      console.warn(
-        found ? `[ApexCharts] unit chart: mark "${s2}" needs a path string and a viewBox of 4 numbers with a positive width and height.` : `[ApexCharts] unit chart: no mark named "${s2}" is registered. Register one with ApexCharts.registerUnitMark("${s2}", pathData), or import a catalog from 'apexcharts/pictograms'.`
-      );
-    }
+    this._warnMarkOnce(
+      s2,
+      found ? `[ApexCharts] unit chart: mark "${s2}" needs a path string and a viewBox of 4 numbers ([0, 0, 24, 24] or '0 0 24 24') with a positive width and height.` : `[ApexCharts] unit chart: no mark named "${s2}" is registered. Register one with ApexCharts.registerUnitMark("${s2}", pathData), or import a catalog from 'apexcharts/pictograms'.`
+    );
     return null;
+  }
+  /**
+   * Warn about a mark that cannot draw, once per chart rather than once per
+   * render: a Unit is made anew for every render, so a set held on it would
+   * warn again on each update of a live chart. Kept on the chart, as
+   * `_applyMaxUnits` keeps `_unitCapWarned`.
+   * @param {string} key what the warning is about @param {string} msg
+   */
+  _warnMarkOnce(key, msg) {
+    const ctx = (
+      /** @type {any} */
+      this.ctx || this
+    );
+    if (!ctx._unitMarkWarned) ctx._unitMarkWarned = /* @__PURE__ */ new Set();
+    if (ctx._unitMarkWarned.has(key)) return;
+    ctx._unitMarkWarned.add(key);
+    console.warn(msg);
   }
   /**
    * The draw spec for one glyph at the current lattice pitch, cached per
@@ -4057,13 +4285,110 @@ class Unit {
       d: mark.path,
       fillRule: mark.fillRule,
       s: s2,
+      // Drawn size over layout radius (see _drawFactor), and what `fit` adds
+      // to the longest side (see _startRadius).
+      g: (1 - pad) * grow,
+      f: Math.max(vb[2], vb[3]) / (pcfg.fit === "width" ? vb[2] : pcfg.fit === "height" ? vb[3] : Math.max(vb[2], vb[3])),
       ox: (vb[0] + vb[2] / 2) * s2,
       oy: (vb[1] + vb[3] / 2) * s2,
       tail: ") scale(" + s2 + ")",
+      contours: contoursOf(mark.path),
       r: qr
     });
     this._specCache.set(key, spec);
     return spec;
+  }
+  /**
+   * The hover hit test for glyphs that may have a hole.
+   *
+   * Unit hover is plain DOM hit-testing: the tooltip listens on each series
+   * group and reads the hovered `<path>` off the event. A glyph with a hole (a
+   * ring, whichever way its contours wind and whatever its fill rule) is hit
+   * only on its ink, so over its hole the pointer falls through to the
+   * background, and the tooltip closes and reopens as it crosses the ring, or
+   * a mark beneath takes it. The DOM cannot
+   * widen one path's hit area to its outline portably and for free:
+   * `pointer-events: bounding-box` is Chromium only, and would also take in a
+   * glyph's notches (the gap between a figure's legs) and spill onto
+   * neighbours; a second, invisible hit path per mark doubles the nodes a
+   * crowd of thousands draws and moves every frame.
+   *
+   * So the hole is resolved here, where the geometry is known, and only for
+   * the glyphs that can have one: a hole needs a second contour, so a glyph
+   * of one subpath is never asked about, and the tooltip asks only when the
+   * pointer is on no mark's ink. A point is the mark's when it lies inside any
+   * one of its subpaths taken alone (filled `nonzero`). The outer contour on
+   * its own covers its hole whichever way the hole winds and whatever rule
+   * fills the whole, and nothing outside its outline: a notch stays a miss,
+   * a gap between separate parts (a figure's head and body) stays a miss, and
+   * no hit area reaches a neighbour. The subpaths of each distinct glyph are
+   * built into Path2Ds once, and a bucket grid over the resting slots keeps a
+   * query to a handful of marks.
+   *
+   * @param {SVGGElement} root the unit chart's root group: the slots' space
+   * @param {{node: SVGElement, x: number, y: number, spec: any}[]} holed
+   * @returns {((clientX: number, clientY: number) => Element|null)|null} null
+   *   where there is no Path2D to test with (SSR)
+   */
+  _holeHitTest(root, holed) {
+    if (typeof Path2D !== "function") return null;
+    const boxes = holed.map((h2) => {
+      const vb = h2.spec.mark.viewBox;
+      return { hw: h2.spec.s * vb[2] / 2, hh: h2.spec.s * vb[3] / 2 };
+    });
+    const cell = boxes.reduce((m2, b) => Math.max(m2, 2 * b.hw, 2 * b.hh), 1);
+    const buckets = /* @__PURE__ */ new Map();
+    holed.forEach((h2, k2) => {
+      const key = Math.floor(h2.x / cell) + "," + Math.floor(h2.y / cell);
+      const list = buckets.get(key);
+      if (list) list.push(k2);
+      else buckets.set(key, [k2]);
+    });
+    const paths = /* @__PURE__ */ new Map();
+    let ctx2d = null;
+    return (clientX, clientY) => {
+      const ctm = typeof root.getScreenCTM === "function" ? root.getScreenCTM() : null;
+      if (!ctm) return null;
+      if (!ctx2d) {
+        const canvas = (
+          /** @type {HTMLCanvasElement|null} */
+          BrowserAPIs.createElement("canvas")
+        );
+        ctx2d = canvas && canvas.getContext ? canvas.getContext("2d") : null;
+        if (!ctx2d) return null;
+      }
+      const inv = ctm.inverse();
+      const px = inv.a * clientX + inv.c * clientY + inv.e;
+      const py = inv.b * clientX + inv.d * clientY + inv.f;
+      const cx = Math.floor(px / cell);
+      const cy = Math.floor(py / cell);
+      const near = [];
+      for (let gx = cx - 1; gx <= cx + 1; gx++) {
+        for (let gy = cy - 1; gy <= cy + 1; gy++) {
+          const list = buckets.get(gx + "," + gy);
+          if (list) near.push(...list);
+        }
+      }
+      near.sort((a2, b) => b - a2);
+      for (const k2 of near) {
+        const h2 = holed[k2];
+        const b = boxes[k2];
+        if (Math.abs(px - h2.x) > b.hw || Math.abs(py - h2.y) > b.hh) continue;
+        const s2 = h2.spec;
+        const vb = s2.mark.viewBox;
+        const lx = (px - h2.x) / s2.s + vb[0] + vb[2] / 2;
+        const ly = (py - h2.y) / s2.s + vb[1] + vb[3] / 2;
+        let parts = paths.get(s2.d) || [];
+        if (!parts.length) {
+          parts = s2.contours.map((c2) => new Path2D(c2));
+          paths.set(s2.d, parts);
+        }
+        for (const p2 of parts) {
+          if (ctx2d.isPointInPath(p2, lx, ly, "nonzero")) return h2.node;
+        }
+      }
+      return null;
+    };
   }
   /**
    * Which mark THIS unit draws.
@@ -4384,7 +4709,7 @@ class Unit {
           }
         }
         this.w.globals.unitGatherRAF = null;
-        this.w.globals.animationEnded = true;
+        new Animations(this.w, this.ctx).animationCompleted(this._root);
       } else {
         this.w.globals.unitGatherRAF = BrowserAPIs.requestAnimationFrame(stepFn);
       }
@@ -4641,6 +4966,20 @@ ${percent2.toFixed(1)}%`;
     ret.add(group2);
   }
   /**
+   * One cluster label's text, as lines. A `clusterLabels.formatter` may return
+   * "\n"-separated text to split the label, as it may for an outer label.
+   * @param {number} i @param {number} value @param {number} total @param {any} opts
+   * @returns {string[]}
+   */
+  _clusterLabelLines(i2, value, total, opts) {
+    const w = this.w;
+    const name = w.seriesData.seriesNames[i2] || `series-${i2 + 1}`;
+    const percent2 = total > 0 ? value / total * 100 : 0;
+    const cfg = opts.clusterLabels;
+    const text = typeof cfg.formatter === "function" ? cfg.formatter(name, { seriesIndex: i2, value, percent: percent2, w }) : `${name} (${percent2.toFixed(1)}%)`;
+    return String(text).split("\n");
+  }
+  /**
    * A cluster label placed above (default) or below the cluster/bar. A TOP label
    * over a wide grouped/packed blob rides a curved arc (invisible arc path +
    * <textPath>, centred at 50% offset); a bottom label, a 'columns' bar, or a
@@ -4655,22 +4994,10 @@ ${percent2.toFixed(1)}%`;
     const w = this.w;
     if (!Environment.isBrowser()) return;
     const NS = "http://www.w3.org/2000/svg";
-    const name = w.seriesData.seriesNames[cluster.i] || `series-${cluster.i + 1}`;
-    const percent2 = total > 0 ? value / total * 100 : 0;
     const cfg = opts.clusterLabels;
     const fontSize = parseFloat(cfg.fontSize) || 13;
-    let text;
-    if (typeof cfg.formatter === "function") {
-      text = cfg.formatter(name, {
-        seriesIndex: cluster.i,
-        value,
-        percent: percent2,
-        w
-      });
-    } else {
-      text = `${name} (${percent2.toFixed(1)}%)`;
-    }
-    const str = typeof text === "string" ? text : String(text);
+    const lines = this._clusterLabelLines(cluster.i, value, total, opts);
+    const str = lines.join("\n");
     const textEl = BrowserAPIs.createElementNS(NS, "text");
     textEl.setAttribute("class", "apexcharts-unit-label");
     textEl.setAttribute("text-anchor", "middle");
@@ -4681,7 +5008,7 @@ ${percent2.toFixed(1)}%`;
     const bottom = cfg.position === "bottom";
     const R = cluster.outerR + fontSize * 0.6 + 3 + (cfg.offsetY || 0);
     const estWidth = str.length * fontSize * 0.55;
-    const curved = !bottom && !cluster.flat && cfg.curved !== false && estWidth <= Math.PI * R * 0.95;
+    const curved = !bottom && !cluster.flat && cfg.curved !== false && lines.length === 1 && estWidth <= Math.PI * R * 0.95;
     if (curved) {
       const yMid = cluster.cy;
       const x1 = cluster.cx - R;
@@ -4703,8 +5030,21 @@ ${percent2.toFixed(1)}%`;
     } else {
       textEl.setAttribute("x", String(cluster.cx));
       const y2 = bottom ? cluster.cy + cluster.outerR + fontSize + 6 + (cfg.offsetY || 0) : cluster.cy - cluster.outerR - 6 - (cfg.offsetY || 0);
-      textEl.setAttribute("y", String(y2));
-      textEl.textContent = str;
+      if (lines.length === 1) {
+        textEl.setAttribute("y", String(y2));
+        textEl.textContent = str;
+      } else {
+        const lh = Math.round(fontSize * 1.35);
+        const y0 = bottom ? y2 : y2 - (lines.length - 1) * lh;
+        textEl.setAttribute("y", String(y0));
+        lines.forEach((line, k2) => {
+          const ts = BrowserAPIs.createElementNS(NS, "tspan");
+          ts.setAttribute("x", String(cluster.cx));
+          ts.setAttribute("dy", k2 === 0 ? "0" : String(lh));
+          ts.textContent = line;
+          textEl.appendChild(ts);
+        });
+      }
     }
     elSeries.node.appendChild(textEl);
     return (
@@ -25220,6 +25560,9 @@ function assign(objects, slots, order, pitch) {
   }
   return out;
 }
+const NARROW = 4;
+const MAX_SPREAD = 1.15;
+const WIDE_SPREAD = 1.5;
 function placeRow(cell, n2, dx, inset, r2, into) {
   if (n2 <= 0) return;
   if (n2 === 1) {
@@ -25229,8 +25572,9 @@ function placeRow(cell, n2, dx, inset, r2, into) {
   let a2 = cell.x0 + inset;
   const b = cell.x1 - inset;
   let gap = (b - a2) / (n2 - 1);
-  if (gap > dx * 1.5) {
-    gap = dx;
+  const cap = n2 <= NARROW ? dx * MAX_SPREAD : gap > dx * WIDE_SPREAD ? dx : gap;
+  if (gap > cap) {
+    gap = cap;
     a2 = (cell.x0 + cell.x1) / 2 - gap * (n2 - 1) / 2;
   }
   for (let j = 0; j < n2; j++) {
@@ -25923,11 +26267,18 @@ function registerShapes(shapes) {
   });
   return names;
 }
+function readViewBox(vb) {
+  if (!vb || typeof vb === "string" && !vb.trim()) return [0, 0, 100, 100];
+  if (typeof vb !== "string") return vb;
+  const parts = vb.trim().split(/[\s,]+/);
+  const nums = parts.map(Number);
+  return parts.length === 4 && nums.every((n2) => isFinite(n2)) ? nums : vb;
+}
 function definePictogram(meta) {
   const mark = (
     /** @type {any} */
     __spreadProps(__spreadValues({}, meta), {
-      viewBox: meta.viewBox || [0, 0, 100, 100]
+      viewBox: readViewBox(meta.viewBox)
     })
   );
   mark.with = (overrides) => definePictogram(__spreadValues(__spreadValues({}, meta), overrides));

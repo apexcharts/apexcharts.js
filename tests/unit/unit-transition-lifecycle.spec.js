@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import './__mocks__/ResizeObserver.js'
 import '../../src/entries/unit.js'
 import ApexCharts from '../../src/entries/standard.js'
+import Unit from '../../src/charts/Unit.js'
 
 // What users saw in unit chart transitions:
 // - after a non-animated update or a switch to another type mid-gather, the
@@ -231,4 +232,120 @@ it.each([
     const d = units()[0]
     expect(+d.getAttribute('height')).toBe(s2)
   }
+})
+
+// A step that changes only `pictogram.scale` (or `padding`) used to apply the
+// new size on the first frame and then do nothing, and one that changed the
+// layout radius as well popped by the scale ratio before it eased.
+it.each([
+  ['scale alone', [20, 20], { scale: 1.6 }],
+  ['scale and radius', [6, 6], { scale: 1.6 }],
+  ['padding', [20, 20], { padding: 0.4 }],
+])('a changed draw factor (%s) eases from the size the glyph was drawn at', async (_name, next, pcfg) => {
+  const scaleOf = (d) => +/scale\(([^)]+)\)/.exec(d.getAttribute('transform'))[1]
+  await mount({
+    series: [20, 20],
+    labels: ['A', 'B'],
+    plotOptions: {
+      unit: {
+        shape: 'pictogram',
+        pictogram: { mark: 'M50 10 L90 90 L10 90 Z', scale: 1 },
+        clusterLabels: { show: false },
+      },
+    },
+  })
+  frames(200)
+  const s0 = scaleOf(units()[0])
+  await chart.updateOptions(
+    { series: next, plotOptions: { unit: { pictogram: pcfg } } },
+    false,
+    true,
+  )
+  frames(1)
+  const s1 = scaleOf(units()[0])
+  frames(200)
+  const s2 = scaleOf(units()[0])
+  expect(Math.abs(s2 - s0)).toBeGreaterThan(Math.abs(s0) * 0.2)
+  // One frame in, it has barely set off from the size it was drawn at. Before
+  // the fix the scale ratio applied at once: the whole change for a scale or
+  // padding alone, over a quarter of it with a new radius as well.
+  expect((s1 - s0) / (s2 - s0)).toBeLessThan(0.15)
+})
+
+const glyphScale = (d) => +/scale\(([^)]+)\)/.exec(d.getAttribute('transform'))[1]
+const TRI = 'M50 10 L90 90 L10 90 Z'
+
+it('a changed fit eases too, for the same mark', async () => {
+  // A 2:1 mark: 'height' binds its short side, so the glyph doubles.
+  const WIDE = { path: 'M0 0 L100 0 L100 50 L0 50 Z', viewBox: [0, 0, 100, 50] }
+  await mount({
+    series: [20, 20],
+    labels: ['A', 'B'],
+    plotOptions: { unit: { shape: 'pictogram', pictogram: { mark: WIDE }, clusterLabels: { show: false } } },
+  })
+  frames(200)
+  const s0 = glyphScale(units()[0])
+  await chart.updateOptions({ plotOptions: { unit: { pictogram: { fit: 'height' } } } }, false, true)
+  frames(1)
+  const s1 = glyphScale(units()[0])
+  frames(200)
+  const s2 = glyphScale(units()[0])
+  expect(s2 / s0).toBeCloseTo(2, 6)
+  expect((s1 - s0) / (s2 - s0)).toBeLessThan(0.15)
+})
+
+it('a scale change lands exactly where a fresh render at that scale draws', async () => {
+  const opts = (scale) => ({
+    series: [20, 20],
+    labels: ['A', 'B'],
+    plotOptions: { unit: { shape: 'pictogram', pictogram: { mark: TRI, scale }, clusterLabels: { show: false } } },
+  })
+  await mount(opts(1))
+  frames(200)
+  await chart.updateOptions({ plotOptions: { unit: { pictogram: { scale: 1.6 } } } }, false, true)
+  frames(200)
+  const tweened = units().map((d) => d.getAttribute('transform'))
+  chart.destroy()
+  await mount(opts(1.6))
+  frames(200)
+  expect(units().map((d) => d.getAttribute('transform'))).toEqual(tweened)
+})
+
+it('a circle that becomes a padded glyph starts at the circle size', async () => {
+  await mount({ series: [20, 20], labels: ['A', 'B'], plotOptions: { unit: { clusterLabels: { show: false } } } })
+  frames(200)
+  const diameter = 2 * +units()[0].getAttribute('r')
+  await chart.updateOptions(
+    { plotOptions: { unit: { shape: 'pictogram', pictogram: { mark: TRI, padding: 0.4 } } } },
+    false,
+    true,
+  )
+  // Seeded before the first frame. TRI's viewBox is 100 wide, so the glyph's
+  // box is scale * 100.
+  expect(Math.abs(glyphScale(units()[0]) * 100 - diameter)).toBeLessThan(0.5)
+  frames(200)
+  expect(Math.abs(glyphScale(units()[0]) * 100 - diameter * 0.6)).toBeLessThan(0.5)
+})
+
+it('an update that keeps the draw factor never rewrites the resting size', async () => {
+  const unit = { shape: 'pictogram', pictogram: { mark: TRI, padding: 0.2, scale: 1.3 }, clusterLabels: { show: false } }
+  await mount({ series: [20, 20], labels: ['A', 'B'], plotOptions: { unit } })
+  frames(200)
+  const rest = units()[0].getAttribute('transform')
+  await chart.updateOptions({ plotOptions: { unit: { pictogram: { padding: 0.2, scale: 1.3 } } } }, false, true)
+  for (let f = 0; f < 30; f++) {
+    frames(1)
+    expect(units()[0].getAttribute('transform')).toBe(rest)
+  }
+})
+
+it('an unchanged draw factor hands back the radius exactly, not a rounded copy', () => {
+  // (r * g) / g is not always r in floating point, and a start radius a hair off
+  // r1 would send every resting glyph through the size tween on each update.
+  const g = 1.04
+  let r = 1
+  while ((r * g) / g === r) r += 0.01
+  const spec = { pk: 2, g, f: 1, d: TRI, mark: { viewBox: [0, 0, 100, 100] } }
+  const unit = new Unit({}, {})
+  expect(unit._startRadius({ r, g, spec }, spec)).toBe(r)
 })

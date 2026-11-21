@@ -30,7 +30,7 @@ var __objRest = (source, exclude) => {
   return target2;
 };
 /*!
- * ApexCharts v8.8.2
+ * ApexCharts v8.9.1
  * (c) 2018-2026 ApexCharts
  */
 const CMD = /[MmLlHhVvCcSsQqTtAaZz]/;
@@ -599,6 +599,9 @@ function assign(objects, slots, order, pitch) {
   }
   return out;
 }
+const NARROW = 4;
+const MAX_SPREAD = 1.15;
+const WIDE_SPREAD = 1.5;
 function placeRow(cell, n, dx, inset, r, into) {
   if (n <= 0) return;
   if (n === 1) {
@@ -608,8 +611,9 @@ function placeRow(cell, n, dx, inset, r, into) {
   let a = cell.x0 + inset;
   const b = cell.x1 - inset;
   let gap = (b - a) / (n - 1);
-  if (gap > dx * 1.5) {
-    gap = dx;
+  const cap = n <= NARROW ? dx * MAX_SPREAD : gap > dx * WIDE_SPREAD ? dx : gap;
+  if (gap > cap) {
+    gap = cap;
     a = (cell.x0 + cell.x1) / 2 - gap * (n - 1) / 2;
   }
   for (let j = 0; j < n; j++) {

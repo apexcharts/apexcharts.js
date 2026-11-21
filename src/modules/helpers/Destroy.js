@@ -33,6 +33,9 @@ export default class Destroy {
     }
     // The selection emit belongs to the rect being torn down.
     clearTimeout(gl.selectionResizeTimer ?? undefined)
+    // The unit hole hit test holds the glyphs being torn down; the next unit
+    // render sets a fresh one.
+    gl.unitHoleHit = null
     if (this.ctx._zoomPanSelection) {
       this.ctx._zoomPanSelection.destroy()
     }
