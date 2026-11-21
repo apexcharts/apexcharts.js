@@ -11,6 +11,10 @@ const WEEK = 7 * DAY
 const APPROX_MONTH = 30 * DAY
 const APPROX_YEAR = 365 * DAY
 
+// Sub-day units, whose length in ms never changes.
+/** @type {Record<string, number>} */
+const FIXED_MS = { second: SECOND, minute: MINUTE, hour: HOUR }
+
 const MIN_ZOOM_DAYS = 10 / (24 * 60 * 60)
 
 // Ladder of "nice" tick intervals, ordered from finest to coarsest.
@@ -175,12 +179,18 @@ class TimeScale {
         value: t,
       })
 
-      t = dt.addInterval(
-        t,
-        /** @type {any} */ (interval.unit),
-        interval.step,
-        isUTC,
-      )
+      // The local clock steps over the hour a fall-back repeats (02:00 CEST
+      // + 1h reads 03:00, two real hours on) and, from inside it, back into
+      // its first pass. Below a day, step by elapsed time when that lands on
+      // a boundary too, so the repeated hour keeps its ticks.
+      const unit = /** @type {any} */ (interval.unit)
+      const fixedMs = isUTC ? 0 : FIXED_MS[unit] || 0
+      const elapsed = t + interval.step * fixedMs
+      t =
+        fixedMs &&
+        dt.ceilToBoundary(elapsed, unit, interval.step, false) === elapsed
+          ? elapsed
+          : dt.addInterval(t, unit, interval.step, isUTC)
       iter++
     }
 
