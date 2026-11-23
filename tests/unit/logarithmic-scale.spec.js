@@ -338,3 +338,62 @@ describe('CoreUtils.getLogYRatios', () => {
     out.forEach((r) => expect(isFinite(r)).toBe(true))
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Exact powers of the base
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('log scales on exact powers of the base', () => {
+  // Math.log(1000) / Math.log(10) is 2.9999999999999996 and
+  // Math.log(9) / Math.log(3) is 2.0000000000000004, so floor/ceil of the
+  // plain quotient was one power off.
+  it('does not add a power below a min that is a power of the base', () => {
+    const { s } = scalesFor({
+      chart: { type: 'line' },
+      series: [{ data: [1000, 1e6] }],
+    })
+    expect(s.logarithmicScaleNice(1000, 1e6, 10).result).toEqual([
+      1000, 1e4, 1e5, 1e6,
+    ])
+    expect(s.logarithmicScaleNice(1e6, 1e9, 10).result).toEqual([
+      1e6, 1e7, 1e8, 1e9,
+    ])
+  })
+
+  it('does not add a power above a max that is a power of the base', () => {
+    const { s } = scalesFor({
+      chart: { type: 'line' },
+      series: [{ data: [1, 9] }],
+    })
+    expect(s.logarithmicScaleNice(1, 9, 3).result).toEqual([1, 3, 9])
+    expect(s.logarithmicScaleNice(1, 15625, 5).result).toEqual([
+      1, 5, 25, 125, 625, 3125, 15625,
+    ])
+    expect(s.logarithmicScaleNice(1e-4, 0.01, 10).result).toEqual([
+      1e-4, 1e-3, 0.01,
+    ])
+  })
+
+  it('starts and ends logarithmicScale on the exact bounds', () => {
+    const { s } = scalesFor({
+      chart: { type: 'line' },
+      series: [{ data: [1000, 1e6] }],
+    })
+    const { result } = s.logarithmicScale(1000, 1e6, 10)
+    expect(result[0]).toBe(1000)
+    expect(result[result.length - 1]).toBe(1e6)
+  })
+
+  it('counts a domain of exactly one decade as one base multiple', () => {
+    const { chart, s } = scalesFor({
+      chart: { type: 'line' },
+      series: [{ data: [1e-6, 5e-6, 1e-5] }],
+      yaxis: { logarithmic: true },
+    })
+    expect(s._logDomainSpan(1e-6, 1e-5, 10)).toBe(1)
+    expect(s._logDomainSpan(0.001, 0.01, 10)).toBe(1)
+
+    s.setYScaleForIndex(0, 1e-6, 1e-5)
+    expect(chart.w.globals.invalidLogScale).toBe(false)
+  })
+})

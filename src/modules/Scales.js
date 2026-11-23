@@ -565,6 +565,21 @@ export default class Scales {
   }
 
   /**
+   * Logarithm of `value` to `base`, snapped to the nearest integer when it is
+   * within rounding error of one. Math.log(1000) / Math.log(10) is
+   * 2.9999999999999996 (also 1e6, 1e-3, 27 in base 3, ...), so Math.floor()
+   * and Math.ceil() of the plain quotient land one power off.
+   * @param {number} value
+   * @param {number} base
+   * @returns {number}
+   */
+  _logOf(value, base) {
+    const l = Math.log(value) / Math.log(base)
+    const r = Math.round(l)
+    return Math.abs(l - r) < 1e-9 ? r : l
+  }
+
+  /**
    * @param {number} yMin
    * @param {number} yMax
    * @param {number} base
@@ -578,8 +593,8 @@ export default class Scales {
     const logs = []
 
     // Get powers of base for our max and min
-    const logMax = Math.ceil(Math.log(yMax) / Math.log(base) + 1)
-    const logMin = Math.floor(Math.log(yMin) / Math.log(base))
+    const logMax = Math.ceil(this._logOf(yMax, base) + 1)
+    const logMin = Math.floor(this._logOf(yMin, base))
 
     for (let i = logMin; i < logMax; i++) {
       logs.push(Math.pow(base, i))
@@ -618,9 +633,7 @@ export default class Scales {
     if (yMin <= 0) yMin = Math.min(yMax, base)
     if (yMin <= 0 || yMax <= 0) return 0
 
-    return Math.abs(
-      Math.log(yMax) / Math.log(base) - Math.log(yMin) / Math.log(base),
-    )
+    return Math.abs(this._logOf(yMax, base) - this._logOf(yMin, base))
   }
 
   /**
@@ -637,8 +650,8 @@ export default class Scales {
     const logs = []
 
     // Get the logarithmic range.
-    const logMax = Math.log(yMax) / Math.log(base)
-    const logMin = Math.log(yMin) / Math.log(base)
+    const logMax = this._logOf(yMax, base)
+    const logMin = this._logOf(yMin, base)
 
     // Get the exact logarithmic range.
     // (This is the exact number of multiples of the base there are between yMin and yMax).
@@ -704,7 +717,7 @@ export default class Scales {
       const m = (map ? map.map((i) => s[i]) : s)
         .flat()
         .reduce((a, v) => (v > 0 && (!a || v < a) ? v : a), 0)
-      minY = m && Math.min(b, b ** Math.floor(Math.log(m) / Math.log(b)))
+      minY = m && Math.min(b, b ** Math.floor(this._logOf(m, b)))
     }
 
     const range = Math.abs(maxY - minY)
