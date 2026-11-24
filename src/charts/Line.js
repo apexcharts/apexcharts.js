@@ -300,7 +300,15 @@ class Line {
       y2Arrj.push(yArrj[0] !== null ? prevY2 : null)
     }
 
-    const pathsFrom = this._calculatePathsFrom(realIndex, prevY)
+    // The lower edge, joined second, opens `M x0 yHigh L x0 yLow`. Its
+    // baseline needs that same duplicate anchor at x0 or the band slides.
+    // The upper edge (pathsFrom2) is a plain polyline and must not have it.
+    const pathsFrom = this._calculatePathsFrom(
+      realIndex,
+      prevY,
+      pX,
+      type === 'rangeArea',
+    )
 
     // RangeArea will resume with these for the upper path creation
     const rYArrj = [yArrj[0]]
@@ -334,7 +342,9 @@ class Line {
     })
 
     if (type === 'rangeArea') {
-      const pathsFrom2 = this._calculatePathsFrom(realIndex, prevY2)
+      // Upper edge: one command per point, joined in front of the lower
+      // edge. It lines up without a duplicate opening anchor.
+      const pathsFrom2 = this._calculatePathsFrom(realIndex, prevY2, pX)
       const rangePaths = this._iterateOverDataPoints({
         ...iteratingOpts,
         series: seriesRangeEnd,
@@ -372,6 +382,26 @@ class Line {
       // captured previous render already ends with `z`; appending another
       // used to produce a double-z path that broke reconciliation and fed
       // the morph a malformed command list.
+      //
+      // The fill's pathTo closes `L xLast bottom L x0 bottom z`. Without
+      // those two corners the bottom-right one is paired with the subpath
+      // start and sweeps across the plot during the entrance, leaving the
+      // right half unfilled halfway through. Nulls segment the fill, and a
+      // previous path (appendPathFrom off) is not this baseline polyline.
+      if (
+        this.appendPathFrom &&
+        !w.globals.hasNullValues &&
+        paths.xArrj.length >= 2
+      ) {
+        const x0 = paths.xArrj[0]
+        const xLast = paths.xArrj[paths.xArrj.length - 1]
+        if (typeof x0 === 'number' && typeof xLast === 'number') {
+          const graphics = new Graphics(this.w)
+          paths.pathFromArea +=
+            graphics.line(xLast, this.areaBottomY) +
+            graphics.line(x0, this.areaBottomY)
+        }
+      }
       paths.pathFromArea += 'z'
     }
 
@@ -529,13 +559,29 @@ class Line {
    * The baseline pathFrom a series grows from on mount, or the previous
    * render's paths when there are any. `prevY` rides along for the first
    * point's marker.
+   *
+   * The opening anchor sits at the first point's x, on the baseline. The
+   * per-point walk then adds one `L x baseline` per later point (two for a
+   * step curve, which emits two commands per point), so each from-anchor
+   * shares its destination's x and the morph rises vertically. An opening
+   * segment at x = 0 (and a second copy of it) shifted every later anchor
+   * onto the previous point, and the line slid diagonally (#4994).
+   *
+   * RangeArea's lower edge is the exception: it opens `M x0 yHigh L x0 yLow`,
+   * so it still needs that second anchor, now at x0 rather than at x = 0.
    * @param {number} realIndex
    * @param {number} prevY
+   * @param {number} originX first point's x — the same x `pathTo` starts at
+   * @param {boolean} [duplicateOpening] second anchor at x0, for the range
+   *   area lower edge only
    */
-  _calculatePathsFrom(realIndex, prevY) {
+  _calculatePathsFrom(realIndex, prevY, originX, duplicateOpening = false) {
     const graphics = new Graphics(this.w)
-    let pathFromLine =
-      graphics.move(0, this.areaBottomY) + graphics.line(0, this.areaBottomY)
+    const x0 = typeof originX === 'number' ? originX : 0
+    let pathFromLine = graphics.move(x0, this.areaBottomY)
+    if (duplicateOpening) {
+      pathFromLine += graphics.line(x0, this.areaBottomY)
+    }
     let pathFromArea = pathFromLine
 
     if (this.w.globals.previousPaths.length > 0) {
@@ -1308,8 +1354,26 @@ class Line {
         !w.globals.hasNullValues &&
         !(curve === 'monotoneCubic' && type === 'rangeArea')
       ) {
-        pathFromLine += graphics.line(x, this.areaBottomY)
-        pathFromArea += graphics.line(x, this.areaBottomY)
+        // A step emits two commands per point (H then V, or V then H).
+        // One baseline anchor per point leaves them paired with the wrong
+        // x, and the line travels sideways. Two anchors, each at that
+        // command's own endpoint x, rise in place.
+        const bottom = this.areaBottomY
+        /** @type {number[]} */
+        let fromXs
+        if (curve === 'stepline') {
+          fromXs = [x, x]
+        } else if (curve === 'linestep') {
+          const prevX = xArrj[xArrj.length - 2]
+          fromXs = [typeof prevX === 'number' ? prevX : x, x]
+        } else {
+          fromXs = [x]
+        }
+        for (let k = 0; k < fromXs.length; k++) {
+          const seg = graphics.line(fromXs[k], bottom)
+          pathFromLine += seg
+          pathFromArea += seg
+        }
       }
 
       if (!this._shapeOnly) {
@@ -1474,8 +1538,10 @@ class Line {
     const offX = w.config.markers.offsetX
     const offY = w.config.markers.offsetY
 
-    // pathFrom baselines grow one ` L x bottom` per point (unless a previous
-    // render's path was adopted, which turns appendPathFrom off)
+    // pathFrom baselines: the opening M is the first point at the baseline
+    // (see _calculatePathsFrom); each later point adds one ` L x bottom`
+    // (unless a previous render's path was adopted, which turns
+    // appendPathFrom off)
     const appendFrom = this.appendPathFrom && !w.globals.hasNullValues
     let { pathFromLine, pathFromArea } = pathsFrom
 
