@@ -606,11 +606,7 @@ export default class ZoomPanSelection extends Toolbar {
     // so scrolling out past the data doesn't keep re-rendering.
     const bounds = this._clampBounds()
     if (bounds) {
-      const minXDiff =
-        w.globals.minXDiff > 0 && isFinite(w.globals.minXDiff)
-          ? w.globals.minXDiff
-          : 0
-      const minRange = Math.max(minXDiff * 2, (bounds.max - bounds.min) * 1e-6)
+      const minRange = this._zoomMinRange(bounds)
       if (newRange < minRange) newRange = minRange
       if (newRange > bounds.max - bounds.min) newRange = bounds.max - bounds.min
     }
@@ -1175,9 +1171,13 @@ export default class ZoomPanSelection extends Toolbar {
         }
 
         if (zoomtype === 'xy' || zoomtype === 'x') {
+          // Wheel and pinch already stop below _zoomMinRange. A selection drag
+          // did not, so a handful of 10px drags on a datetime axis walked the
+          // window below the resolution of its values (#4986).
+          const floored = this._floorSelectionZoom(xLowestValue, xHighestValue)
           xaxis = {
-            min: xLowestValue,
-            max: xHighestValue,
+            min: floored.min,
+            max: floored.max,
           }
         }
 
@@ -1468,6 +1468,107 @@ export default class ZoomPanSelection extends Toolbar {
   }
 
   /**
+   * Smallest zoom-in window over `bounds`. Wheel, pinch and selection zoom
+   * all stop here: two x point-spacings, or a millionth of the domain,
+   * whichever is larger.
+   *
+   * Range bars zoom the value axis. `minXDiff` there is the category gap, not
+   * the time gap, so they pass `false` and keep only the domain term.
+   * @param {{min:number, max:number}} bounds
+   * @param {boolean} [usePointSpacing]
+   * @returns {number}
+   */
+  _zoomMinRange(bounds, usePointSpacing = true) {
+    const span = bounds.max - bounds.min
+    if (!(span > 0) || !isFinite(span)) return 0
+    let gap = 0
+    if (usePointSpacing) {
+      const minXDiff = this.w.globals.minXDiff
+      gap = minXDiff > 0 && isFinite(minXDiff) ? minXDiff : 0
+    }
+    return Math.max(gap * 2, span * 1e-6)
+  }
+
+  /**
+   * Widen a selection-zoom window that is narrower than {@link _zoomMinRange}.
+   * The result stays inside the domain, the way a wheel zoom is clamped after
+   * it hits the same floor. Category axes already have their own minimum.
+   * @param {number} min
+   * @param {number} max
+   * @returns {{min:number, max:number}}
+   */
+  _floorSelectionZoom(min, max) {
+    const w = this.w
+    if (w.config.xaxis.convertedCatToNumeric) return { min, max }
+    if (!isFinite(min) || !isFinite(max) || !(max > min)) return { min, max }
+
+    const rangeBar = !!w.axisFlags.isRangeBar
+    const bounds = rangeBar ? this._rangeBarZoomBounds() : this._clampBounds()
+    if (!bounds) return { min, max }
+
+    const span = bounds.max - bounds.min
+    // niceScale strips a non-integer tick to 7 significant digits. On a
+    // timestamp axis that quantum is far wider than a millionth of the data
+    // span, and a window that falls inside one quantum comes back as a single
+    // tick. Two quanta cannot strip to the same value.
+    const resolution =
+      Math.max(this._scaleResolution(bounds.min), this._scaleResolution(bounds.max)) *
+      2
+    let minRange = Math.max(this._zoomMinRange(bounds, !rangeBar), resolution)
+    if (!(minRange > 0)) return { min, max }
+    if (minRange > span) minRange = span
+    if (max - min >= minRange) return { min, max }
+
+    const mid = (min + max) / 2
+    let lo = mid - minRange / 2
+    let hi = lo + minRange
+    if (lo < bounds.min) {
+      lo = bounds.min
+      hi = lo + minRange
+    }
+    if (hi > bounds.max) {
+      hi = bounds.max
+      lo = hi - minRange
+    }
+    if (lo < bounds.min) lo = bounds.min
+    return { min: lo, max: hi }
+  }
+
+  /**
+   * Quantization of `Utils.stripNumber(n, 7)` at this magnitude. Integers skip
+   * the strip, but a selection edge is not an integer.
+   * @param {number} value
+   * @returns {number}
+   */
+  _scaleResolution(value) {
+    const mag = Math.abs(value)
+    if (!(mag > 0) || !isFinite(mag)) return 0
+    const step = 10 ** (Math.floor(Math.log10(mag)) - 6)
+    return isFinite(step) ? step : 0
+  }
+
+  /**
+   * Datetime extent of a range bar. `_clampBounds` is null there: time lives
+   * on the value axis, not in the raw-x stash.
+   * @returns {{min:number, max:number}|null}
+   */
+  _rangeBarZoomBounds() {
+    const r = this.w.rangeData
+    if (!r) return null
+    let lo = Infinity
+    let hi = -Infinity
+    const rows = (r.seriesRangeStart || []).concat(r.seriesRangeEnd || [])
+    rows.flat().forEach((/** @type {any} */ y) => {
+      if (typeof y === 'number' && isFinite(y)) {
+        if (y < lo) lo = y
+        if (y > hi) hi = y
+      }
+    })
+    if (!(hi > lo)) return null
+    return { min: lo, max: hi }
+  }
+
+  /**
    * Raw data bounds to clamp against. When zoom-aware downsampling is active,
    * the raw stash tracks the full domain; fall back to the initial window.
    * Returns null for rangeBars (no raw-x clamp available).
@@ -1712,7 +1813,6 @@ export default class ZoomPanSelection extends Toolbar {
 
   /** @param {any} e */
   _movePinch(e) {
-    const w = this.w
     const p = this._m().pinch
     if (!p || !this._hasPlot()) return
 
@@ -1736,11 +1836,7 @@ export default class ZoomPanSelection extends Toolbar {
     // zoom) so it never collapses to a zero-width / NaN range
     const bounds = this._clampBounds()
     if (bounds) {
-      const minXDiff =
-        w.globals.minXDiff > 0 && isFinite(w.globals.minXDiff)
-          ? w.globals.minXDiff
-          : 0
-      const minRange = Math.max(minXDiff * 2, (bounds.max - bounds.min) * 1e-6)
+      const minRange = this._zoomMinRange(bounds)
       if (newMaxX - newMinX < minRange) {
         const mid = (newMinX + newMaxX) / 2
         newMinX = mid - minRange / 2
