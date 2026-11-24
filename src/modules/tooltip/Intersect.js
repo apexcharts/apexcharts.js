@@ -594,8 +594,14 @@ class Intersect {
       y = w.globals.svgHeight - ttCtx.tooltipRect.ttHeight
     }
 
-    if (x + ttCtx.tooltipRect.ttWidth > w.layout.gridWidth) {
-      x = x - ttCtx.tooltipRect.ttWidth
+    // Flip by the tooltip's whole width when it would run past the plot.
+    // `x - ttWidth` is negative when the bar sits closer to the left than the
+    // tooltip is wide. With the arrow off, this x is where the box is drawn,
+    // so it left the chart (#5119). Hold that box inside the plot.
+    const ttW = ttCtx.tooltipRect.ttWidth || 0
+    if (x + ttW > w.layout.gridWidth) {
+      x = x - ttW
+      if (x < 0) x = Math.max(0, w.layout.gridWidth - ttW)
     } else if (x < 0) {
       x = 0
     }
