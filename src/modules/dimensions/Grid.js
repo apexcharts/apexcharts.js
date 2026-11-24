@@ -55,7 +55,13 @@ export default class DimGrid {
     }
 
     const barsPresent = hasBar(type) || gl.comboBarCount > 0
-    const span = Math.abs(gl.initialMaxX - gl.initialMinX)
+    // The window the user set with xaxis.min / max, else the data's. Taken
+    // from the initial config, not the zoomed one, so zooming never resizes
+    // the plot.
+    const { min: userMin, max: userMax } = gl.initialConfig?.xaxis || {}
+    const lo = typeof userMin === 'number' ? userMin : gl.initialMinX
+    const hi = typeof userMax === 'number' ? userMax : gl.initialMaxX
+    const span = Math.abs(hi - lo)
     let xRange = span
 
     if (

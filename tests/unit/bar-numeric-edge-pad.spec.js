@@ -41,3 +41,37 @@ describe('numeric bar edge pad', () => {
     expect(p).toBeLessThan(cap)
   })
 })
+
+describe('numeric bar edge pad with xaxis min / max', () => {
+  const grid = (xaxis) =>
+    createChartWithOptions({
+      chart: { type: 'bar', width: 600, height: 300 },
+      series: [{ name: 'a', data: daily(3) }],
+      xaxis: { type: 'datetime', ...xaxis },
+    })
+
+  it('sizes the pad on the window the axis shows, not the data (#4833)', () => {
+    // three daily bars in a 12 day window: the pad was measured on the 2 day
+    // data span, a slot the bars never get, and squeezed them mid-plot
+    const chart = grid({
+      min: Date.UTC(2023, 11, 27),
+      max: Date.UTC(2024, 0, 8),
+    })
+    const { gridWidth } = chart.w.layout
+    const pad = chart.w.globals.barPadForNumericAxis
+    expect(gridWidth).toBeGreaterThan(480)
+    // the edge bars still fit: half a group is under the pad
+    const slot = gridWidth / 12
+    expect((slot * 0.7) / 2).toBeLessThan(pad)
+  })
+
+  it('keeps the plot size while zooming', () => {
+    const chart = grid({
+      min: Date.UTC(2023, 11, 27),
+      max: Date.UTC(2024, 0, 8),
+    })
+    const before = chart.w.layout.gridWidth
+    chart.zoomX(Date.UTC(2024, 0, 1), Date.UTC(2024, 0, 3))
+    expect(chart.w.layout.gridWidth).toBeCloseTo(before, 6)
+  })
+})
