@@ -277,21 +277,23 @@ Working demo of all three, including the outline-authoring rules (subpaths union
 
 ## Premium features & licensing
 
-Most of ApexCharts is free and open source. A small set of advanced features are **premium** and require a license key:
+Most of ApexCharts needs no license key. A small set of advanced features are **premium** and require a key on the Premium or OEM plan:
 
 | Feature | Enabled by |
 |---|---|
 | Unit chart type (dot / pictogram / waffle / beeswarm) | `chart.type: 'unit'` / `chart.type: 'waffle'` (needs `apexcharts/unit`, not in the default bundle) |
 | Raincloud chart type (half-density + box + raw points) | `chart.type: 'raincloud'` (needs `apexcharts/raincloud`, not in the default bundle) |
+| Trellis (small multiples) | `trellis: { ... }` (needs `apexcharts/features/trellis`, not in the default bundle) |
 | Storyboard (scrollytelling) | `chart.storyboard.bind(...)` |
 | Linked views / crossfilter | `chart.link.enabled` / `chart.link.dimension` / `ApexCharts.crossfilter()` |
+| Highlight filter (part-of-whole highlight) | `highlightFilter: { ... }` (needs `apexcharts/features/highlight-filter`) |
 | Ink layer (on-chart annotation editing) | `chart.ink.enabled` |
 | Measure / delta ruler | `chart.measure.enabled` |
 | Context menu (right-click) | `chart.contextMenu.enabled` |
 | Perspectives (shareable view state) | `chart.perspectives.apply()` / `.save()` / `ApexCharts.perspectives.decode()` |
 | History (undo/redo) | `chart.history.enabled` |
 
-Without a valid key these features still work (**trial mode**), but the chart shows an "APEXCHARTS" watermark. A valid key removes it. Every other chart type and feature is free and never watermarked; the premium chart types are `unit` (aliased by `waffle`) and `raincloud`, both listed above.
+Without a valid key these features still work (**trial mode**), but the chart shows an "APEXCHARTS" watermark. A valid key removes it. Every other chart type and feature needs no key and is never watermarked (the license below still applies to all of ApexCharts); the premium chart types are `unit` (aliased by `waffle`) and `raincloud`, both listed above.
 
 ```js
 import ApexCharts from 'apexcharts'
@@ -339,6 +341,7 @@ ApexCharts uses a **$2M threshold license**:
 
 - **Free** for individuals, and organizations with **under $2M USD in annual revenue, operating budget, funding, or equivalent financial resources**, including commercial and internal use. No registration required.
 - **Commercial license required** once you, your parent company, affiliates, or any entity under common control reach $2M USD or more on any of those measures.
+- **OEM license required**, whatever your size, to ship ApexCharts inside a product you distribute to customers, or inside a hosted product where users build, customize, or configure charts. A hosted app that only shows predefined charts does not need one.
 
 Full terms: [apexcharts.com/license](https://apexcharts.com/license)
 
