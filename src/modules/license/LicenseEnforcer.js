@@ -12,16 +12,17 @@
  *
  * Enforcement is trial-mode: a premium feature without a valid, entitled license
  * keeps working, but the chart shows an "APEXCHARTS" watermark. These features
- * are a Premium-and-above entitlement: a valid key on the `premium` or (higher)
- * `enterprise` plan removes the watermark, while a valid key on the lower `pro`
- * plan (or the free tier) keeps it. Client-side enforcement is inherently
+ * are a Premium-and-above entitlement: a valid key on the `premium` or `oem`
+ * plan (or a legacy `enterprise` key, the pre-2026-09-14 name for `oem`) removes
+ * the watermark, while a valid key on the lower `pro` plan (or the free tier)
+ * keeps it. Client-side enforcement is inherently
  * bypassable - this is deterrence and honest-customer compliance, not DRM. It
  * must NEVER degrade or block a feature and must NEVER throw.
  *
  * @module modules/license/LicenseEnforcer
  */
 
-import { LicenseManager, Watermark } from 'apex-commons'
+import { LicenseManager, Watermark, normalisePlan } from 'apex-commons'
 import { Environment } from '../../utils/Environment.js'
 
 const PRICING_URL = 'https://apexcharts.com/pricing'
@@ -197,15 +198,23 @@ function resolveKey(w) {
 }
 
 /**
- * License plans that entitle the premium feature set, lower-cased. The issuing
- * service (editor-api) sells exactly three licensed plans - `pro`, `premium`,
- * `enterprise` (routes/payment/_shared.js VALID_PLAN_TYPES) - and the premium
- * features are a Premium-and-above entitlement: `premium` and the higher
- * `enterprise` tier unlock them, while `pro` (and the free tier, or any unknown
- * plan) does not.
+ * Normalised plans (apex-commons `normalisePlan`) that entitle the premium
+ * feature set. These are exactly the plans apex-commons ranks at the top, equal
+ * to `premium`: an OEM (or embedded) key carries every licensed feature.
+ *
+ * Compare NORMALISED plans only. This set used to hold the raw strings
+ * `premium` and `enterprise`, and `enterprise` was renamed `oem` on 2026-09-14,
+ * so every OEM key issued after the rename was refused and its holder saw the
+ * watermark on features the OEM licence promises "watermark-free".
+ * `normalisePlan` maps the legacy `enterprise` to `oem`, so old keys still pass.
+ *
+ * An unrecognised plan (`normalisePlan` returns null, e.g. a hand-minted
+ * `standard` key) stays in trial mode, as before: the enforcer fails closed,
+ * unlike apex-commons' `planAtLeast`, because it only adds a watermark and never
+ * blocks a feature.
  * @type {Set<string>}
  */
-const PREMIUM_PLANS = new Set(['premium', 'enterprise'])
+const PREMIUM_PLANS = new Set(['premium', 'embedded', 'oem'])
 
 /**
  * Whether a key both validates (format, signature, expiry, domain) AND carries a
@@ -220,8 +229,8 @@ function licensedForPremium(key) {
   if (!key) return false
   const result = LicenseManager.validateKey(key)
   if (!result.valid) return false
-  const plan = result.data && result.data.plan
-  return typeof plan === 'string' && PREMIUM_PLANS.has(plan.toLowerCase())
+  const plan = normalisePlan(result.data && result.data.plan)
+  return plan !== null && PREMIUM_PLANS.has(plan)
 }
 
 /**
@@ -333,7 +342,7 @@ function notifyTrial(ctx, key, features) {
     const plan = (result.data && result.data.plan) || 'current'
     console.warn(
       `[ApexCharts] Premium feature${many ? 's' : ''} in use ` +
-        `(${features.join(', ')}) require a Premium or Enterprise license; the ` +
+        `(${features.join(', ')}) require a Premium or OEM license; the ` +
         `${plan} plan does not include ${many ? 'them' : 'it'}. Running in trial ` +
         `mode with a watermark. Upgrade: ${PRICING_URL}`,
     )

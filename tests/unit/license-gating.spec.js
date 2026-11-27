@@ -325,10 +325,12 @@ describe('License gating', () => {
   // ── plan entitlement: premium features need a Premium-or-above license ─────
   //
   // A structurally valid key is no longer enough. The issuing service sells
-  // pro / premium / enterprise; only premium and the higher enterprise tier
-  // unlock the premium feature set (the unit chart type + the seven features).
+  // pro / premium / oem (oem was called enterprise until 2026-09-14); only
+  // premium and oem unlock the premium feature set.
   describe('plan entitlement', () => {
     const premiumKey = signedKey('2020-01-01', '2099-01-01', 'premium')
+    const oemKey = signedKey('2020-01-01', '2099-01-01', 'oem')
+    const upperOemKey = signedKey('2020-01-01', '2099-01-01', 'OEM')
     const enterpriseKey = signedKey('2020-01-01', '2099-01-01', 'enterprise')
     const proKey = signedKey('2020-01-01', '2099-01-01', 'pro')
     const standardKey = signedKey('2020-01-01', '2099-01-01', 'standard')
@@ -340,7 +342,24 @@ describe('License gating', () => {
       chart.destroy()
     })
 
-    it('enterprise plan (higher tier) -> no watermark', () => {
+    // Every OEM key issued since the 2026-09-14 rename carries `oem`. This was
+    // refused until the enforcer started normalising plans, so OEM customers saw
+    // the watermark on features their licence promises watermark-free.
+    it('oem plan -> no watermark', () => {
+      ApexCharts.setLicense(oemKey)
+      const chart = premiumLineChart({ ink: { enabled: true } })
+      expect(hasWatermark(chart)).toBe(false)
+      chart.destroy()
+    })
+
+    it('oem plan in any case -> no watermark (plan strings are hand-typed)', () => {
+      ApexCharts.setLicense(upperOemKey)
+      const chart = premiumLineChart({ ink: { enabled: true } })
+      expect(hasWatermark(chart)).toBe(false)
+      chart.destroy()
+    })
+
+    it('legacy enterprise plan (old name for oem) -> no watermark', () => {
       ApexCharts.setLicense(enterpriseKey)
       const chart = premiumLineChart({ ink: { enabled: true } })
       expect(hasWatermark(chart)).toBe(false)
@@ -352,7 +371,7 @@ describe('License gating', () => {
       const chart = premiumLineChart({ ink: { enabled: true } })
       expect(hasWatermark(chart)).toBe(true)
       expect(
-        warnSpy.mock.calls.some((c) => /Premium or Enterprise/i.test(String(c[0]))),
+        warnSpy.mock.calls.some((c) => /Premium or OEM/i.test(String(c[0]))),
       ).toBe(true)
       // Not reported as an invalid-key error: the licence is genuine.
       expect(
