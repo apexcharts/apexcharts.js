@@ -52,7 +52,7 @@ var __async = (__this, __arguments, generator) => {
   });
 };
 /*!
- * ApexCharts v8.9.1
+ * ApexCharts v8.9.2
  * (c) 2018-2026 ApexCharts
  */
 class Environment {
@@ -35042,13 +35042,13 @@ function resolveKey(w) {
   if (apex && apex.license) return apex.license;
   return null;
 }
-const PREMIUM_PLANS = /* @__PURE__ */ new Set(["premium", "enterprise"]);
+const PREMIUM_PLANS = /* @__PURE__ */ new Set(["premium", "embedded", "oem"]);
 function licensedForPremium(key) {
   if (!key) return false;
   const result = m.validateKey(key);
   if (!result.valid) return false;
-  const plan = result.data && result.data.plan;
-  return typeof plan === "string" && PREMIUM_PLANS.has(plan.toLowerCase());
+  const plan = l(result.data && result.data.plan);
+  return plan !== null && PREMIUM_PLANS.has(plan);
 }
 function reinstateWatermark(ctx, elWrap) {
   const node = T.add(elWrap, { manage: false });
@@ -35110,7 +35110,7 @@ function notifyTrial(ctx, key, features) {
   if (result.valid) {
     const plan = result.data && result.data.plan || "current";
     console.warn(
-      `[ApexCharts] Premium feature${many ? "s" : ""} in use (${features.join(", ")}) require a Premium or Enterprise license; the ${plan} plan does not include ${many ? "them" : "it"}. Running in trial mode with a watermark. Upgrade: ${PRICING_URL}`
+      `[ApexCharts] Premium feature${many ? "s" : ""} in use (${features.join(", ")}) require a Premium or OEM license; the ${plan} plan does not include ${many ? "them" : "it"}. Running in trial mode with a watermark. Upgrade: ${PRICING_URL}`
     );
     return;
   }
