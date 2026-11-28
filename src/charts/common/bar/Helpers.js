@@ -797,7 +797,7 @@ export default class Helpers {
       y2 = a + len - insetCenter
       x1 = v1 + 0.001 + baseCenter * direction
       tip = v2 + 0.001 - strokeCenter * direction
-      x2 = empty ? x1 : tip
+      x2 = empty || (tip - x1) * (v2 - v1) < 0 ? x1 : tip
       sl = graphics.line(x1, y2)
       squarePathTo =
         graphics.move(x1, y1) +
@@ -810,7 +810,7 @@ export default class Helpers {
       x2 = a + len - insetCenter
       y1 = v1 + 0.001 - baseCenter * direction
       tip = v2 + 0.001 + strokeCenter * direction
-      y2 = empty ? y1 : tip
+      y2 = empty || (tip - y1) * (v2 - v1) < 0 ? y1 : tip
       sl = graphics.line(x2, y1)
       squarePathTo =
         graphics.move(x1, y1) +
