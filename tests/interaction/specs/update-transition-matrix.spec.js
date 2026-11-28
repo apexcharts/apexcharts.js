@@ -123,6 +123,24 @@ const CASES = {
     o: base({ chart: { type: 'bar', stacked: true } }),
     series: (s, n) => byName({ n, f: (c, i) => ({ x: CATS[i], y: v(c, i, s) }) }),
   },
+  'column, subpixel stroked values': {
+    o: base({
+      chart: { type: 'bar' },
+      stroke: { width: 1, colors: ['transparent'] },
+      plotOptions: { bar: { borderRadius: 4, borderRadiusApplication: 'end' } },
+      yaxis: { min: -100, max: 100 },
+    }),
+    series: (s, n) => byName({ n, f: (c, i) => ({ x: CATS[i], y: i % 2 === s ? 0.01 : v(c, i, s) }) }),
+  },
+  'bar, subpixel stroked values': {
+    o: base({
+      chart: { type: 'bar' },
+      stroke: { width: 1, colors: ['transparent'] },
+      plotOptions: { bar: { horizontal: true, borderRadius: 4, borderRadiusApplication: 'end' } },
+      yaxis: { min: -100, max: 100 },
+    }),
+    series: (s, n) => byName({ n, f: (c, i) => ({ x: CATS[i], y: i % 2 === s ? 0.01 : v(c, i, s) }) }),
+  },
   'column, datetime': {
     o: base({ chart: { type: 'bar' }, xaxis: { type: 'datetime' } }),
     series: (s, n) => byName({ n, f: (c, i) => [T0 + i * DAY, v(c, i, s)] }),
